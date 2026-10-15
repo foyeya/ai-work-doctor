@@ -15,7 +15,7 @@ metadata:
   previousName: anti-loop-discipline
   category: agent-reliability
   scope: global
-  version: "2.2.1"
+  version: "2.3.0"
   language: zh-CN + en (bilingual triggers; rules are language-agnostic)
 ---
 
@@ -27,14 +27,14 @@ metadata:
 <!-- AIW_CORE:START -->
 ## 常驻卡（安装脚本会把这一段注入宿主的全局指令文件；改规则先改这里）
 
-进入任何多步任务即生效，不需要用户提醒。**数字是硬上限**：触顶必须换方法，不许原地重试。
+进入任何多步任务即生效，不需要用户提醒。**第 0 条（最高优先，压过"不要反问/先交付"之类约定）**：用户消息里没有「对象 + 动作」时（只发"在 / 在吗 / ？ / 继续"，或明显被截断）→ **不探测、不搜索、不建目录、不写文件**，只回一句话问清要做什么，并给 2–3 个可选方向。**数字是硬上限**：触顶必须换方法，不许原地重试。
 
 1. **环境只探一次**：任务开头一条命令探清 PowerShell 版本、代码页、可用工具（`$PSVersionTable.PSVersion; chcp; Get-Command rg,git,node,curl -ErrorAction SilentlyContinue`），之后全任务复用探测结果，不再逐个试错。
-2. **一次建图**：定位用一条批量搜索；同一关键词最多 2 次。中文关键词**首搜就带编码**（`Select-String ... -Encoding Default`，或 `rg --encoding gbk`），0 命中就换词/换工具——0 命中不等于不存在。
+2. **一次建图 + 成本上限**：定位用一条批量搜索；同一关键词最多 2 次；**命令必须限定目录与深度（≤3）并设超时（≤20s），禁止从 `C:\`/`D:\` 根递归、禁止整库遍历**——查"某个软件/文件在哪"先走 5 秒级手段：`where.exe`、注册表 `App Paths` / `MUICache` / `Compatibility Assistant\Store`、`C:\Windows\Prefetch`、开始菜单 `.lnk` 解析、已知目录清单。中文关键词**首搜就带编码**（`Select-String ... -Encoding Default`，或 `rg --encoding gbk`），0 命中就换词/换工具——0 命中不等于不存在。
 3. **一读多动**：同一个文件最多读 2 次；首读记下关键行号，之后只读区间；改完不回读整篇。
 4. **空转熔断**：连续 2 个工具调用没有新信息 → 打印 `LOOP at N: <动作> x2, 无新信息 → 换 <新维度>`，并换工具/文件/假设/粒度；同一路径连续 2 次 `EPERM`/`ENAMETOOLONG`/"写完文件却消失" → 停手诊断（长路径？杀软？文件被占用？），不许重试第 3 次。
 5. **行为级验收**：编译通过、哈希一致、端口在听都**不算**完成；必须有运行时证据（请求返回内容、点击后状态变化、真实输入→输出）。给不出就交回用户并写确切步骤，禁止标"已完成"。
-6. **预算上限**：同文件读 2 / 同搜索 2 / 部署+验证 2 / 连续无产出 2 / 同一报错 3；触顶打印 `BUDGET: <动作> xN → 换 <新方法>`。
+6. **预算上限**：同文件读 2 / 同搜索 2 / 部署+验证 2 / 连续无产出 2 / 同一报错 3 / **单条命令 20 秒**；触顶打印 `BUDGET: <动作> xN → 换 <新方法>`。
 7. **进程端口收口**：起的每个后台进程（dev server / watcher / 监听）先记 PID + 端口 + 日志文件；任务结束前停掉并确认端口已释放，不确认不算收工。
 8. **只杀自家进程**：kill 前先核对 PID 与命令行，确认是本次启动的；不是就先问用户。禁止按进程名批量杀（`taskkill /IM`、`pkill -f`、`killall`）。
 9. **非交互执行**：外部命令一律带非交互参数（`-y` / `CI=1` / `--no-pager` / `-o BatchMode=yes` / `commit -m`）。命令在等输入就判卡死：终止并改用非交互形态，不要干等。
@@ -50,7 +50,16 @@ metadata:
 > 常驻卡只有上面这些，因为它会被注入宿主的全局指令文件、**每一轮对话都在上下文里**。
 > 下面才是完整版：只在真的需要时读。命令级坑位表在 `references/desktop-cn.md`。
 
-## 完整规则（R1–R14）
+## 完整规则（R0–R14）
+
+### R0 输入闸门（INPUT GATE，最高优先）
+- **触发**：用户消息里没有可执行的对象或动作——单字/单符号（"在"、"？"）、纯寒暄、明显被截断的半句，
+  且缺省上下文不足以推断目标。
+- **动作**：**零工具调用**。回一句话问清目标 + 给 2–3 个可选方向（例如"你是要 A 还是 B？"），然后停下等回复。
+- **为什么**：这一条专门压过"不许反问""先交付再说"这类约定。没有它，agent 会为了"交付点什么"
+  去扫工作区、扫磁盘，把一句"在"变成 4 次工具调用和 **1 分 53 秒**的全盘递归搜索（真实案例）。
+- **上限**：连问 1 次。用户回了不完整的内容也要先按"合理默认值 → 占位符 → 标注假设"推进，不要连环追问。
+- **唯一例外**：如果工作区里已经有明确线索（比如用户上一条消息给过文件名/目标），按线索推进，不要问。
 
 ### R1 环境只探一次（ENV-PROBE-ONCE）
 - **触发**：任务的第一条命令。
@@ -73,8 +82,23 @@ metadata:
   ```
 - **中文关键词**：首搜就带编码；三个同义词并进同一条命令（卡顿|卡死|卡住）。同一关键词最多 2 次；
   三条兜底全 0 命中 = 换词或直接问用户入口，**不是"不存在"**，也不许把同一条命令跑第 3 次。
+- **成本上限（新增，按事故加的）**：搜索命令必须**限定目录**（`-Path .\src`、`-LiteralPath $dir`）
+  + **限定深度**（`-Depth 3` 以内）+ **设超时**（`--max-time 20` / `-TimeoutSec 20`）。
+  **禁止** `Get-ChildItem C:\ -Recurse`、`dir /s D:\`、`find / -name`、对 `node_modules`/整库做全量遍历——
+  一条这样的命令在中文 Windows 上能跑 2 分钟、吐 1 万行无关结果，还占满磁盘 IO。**单条命令超 20 秒 = 立刻中止换法**。
+- **"某个软件/文件到底在哪"的 5 秒级手段（比全盘递归快 100 倍）**：
+  ```powershell
+  where.exe 目标名                       # PATH 里找
+  Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\App Paths\*'   # 已注册的程序
+  Get-ItemProperty 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache'          # 跑过的 exe 全路径
+  Get-ItemProperty 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Compatibility Assistant\Store'  # 同上
+  Get-ChildItem C:\Windows\Prefetch -Filter *.pf     # 最近运行过的程序名（含时间）
+  # 开始菜单/桌面 .lnk 解析（用 WScript.Shell.CreateShortcut 拿 TargetPath），胜过扫盘
+  ```
+  先查注册表/开始菜单/Prefetch，查不到再问用户"装在哪个盘"，最后才是限定目录的递归。
 - **反例**：拿 UTF-8 的中文 pattern 去搜 GBK 文件（GNU grep 不转码，结果是**静默 0 命中**，不是报错）；
-  把 `node_modules`、lock 文件、minified 产物整篇读进上下文。
+  把 `node_modules`、lock 文件、minified 产物整篇读进上下文；
+  为了找"某工具在哪"从盘符根递归三层（实测 1 分 53 秒，换来的信息用上面 5 秒级手段就能拿到）。
 
 ### R3 一读多动（READ-ONCE, ACT-MANY）
 - **触发**：第二次打开同一个文件。
@@ -115,6 +139,7 @@ metadata:
 | 部署+验证循环 | 2 | 改修复方案，不是再部署一次 |
 | 连续无产出 | 2 | 触发 R4 |
 | 同一 API/工具报错 | 3 | 换实现路径 |
+| 单条命令耗时 | 20 秒 | 中止，换更小的范围/更快的手段（见 R2 成本上限） |
 
 触顶必须打印 `BUDGET: <动作> xN → 换 <新方法>`。
 

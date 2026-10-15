@@ -145,16 +145,17 @@ Can't answer? See the pinned issue [装了没生效？先看这 5 步](https://g
 The installer extracts the card from `SKILL.md` between `AIW_CORE` markers (single source of truth), writes it
 idempotently, previews with `-DryRun` and removes it precisely with `-Uninstall`.
 
-## The 14 rules
+## The 15 rules
 
 | # | Rule | Accident it prevents |
 |---|---|---|
+| **R0** | **Input gate** | A one-character message ("在") sending the agent off to scan the disk: 4 tool calls, a 1m53s recursive sweep of `C:\` + `D:\`, and zero useful output |
 | R1 | Probe the environment once | On Windows `rg/grep/sed/head` often don't exist; the agent burns tokens trying each one |
-| R2 | One-shot map | Same keyword searched six times; lock files and minified bundles read into context |
+| R2 | One-shot map — with a cost ceiling | Same keyword searched six times; lock files and minified bundles read into context; **disk-root recursion** (`Get-ChildItem C:\ -Recurse`) taking minutes |
 | R3 | Read once, act many | The same file re-read in full, four times |
 | R4 | Stall circuit-breaker | "One more try" with no new information; repeated `EPERM`/path-too-long failures |
 | R5 | Behavior-level verification | "It compiles / the port is up" reported as "done" |
-| R6 | Budget caps | Retrying the same failing command forever |
+| R6 | Budget caps (counts **and 20s per command**) | Retrying the same failing command forever; one slow command eating the whole turn |
 | R7 | Close out processes and ports | Leftover dev servers, occupied ports, accumulating processes |
 | R8 | Only kill your own processes | `taskkill /IM node.exe /F` killing the user's IDE |
 | R9 | Non-interactive execution | `npm login` / `rebase -i` hanging forever, session blocked |
@@ -183,7 +184,10 @@ Paste this into the host's "User Rules / Custom Instructions / Rules / Memories"
 
 ```
 Execution discipline (ai-work-doctor):
-1) Read any file at most twice; run any search at most twice; after that, change approach.
+0) If my message has no clear object and action (a bare "在", a "?"), ask me what I want first — do NOT start
+   searching, probing or editing files. That question is the only allowed clarifying turn.
+1) Read any file at most twice; run any search at most twice; after that, change approach. Always scope searches to a
+   directory and a depth; never recurse from a disk root; abort any single command that runs past 20 seconds.
 2) Two consecutive turns with no new artifact → change strategy or report the blocker explicitly.
 3) Never call something done on static evidence alone (compiles / port listening / hash matches).
 4) Before delete, overwrite, `git push --force` or `reset --hard`: back up and wait for my confirmation.

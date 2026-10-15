@@ -32,6 +32,11 @@ jobs:
           core=$(sed -n '/AIW_CORE:START/,/AIW_CORE:END/p' SKILL.md | wc -l)
           echo "常驻卡行数：$core"
           [ "$core" -le 34 ] || { echo "::error::常驻卡超过 30 行硬顶，请删掉等量内容"; exit 1; }
+          # 关键闸门不许被删（R0 输入闸门 / 成本上限 / 单条命令 20 秒）—— 都是按真实事故加的
+          grep -q '第 0 条' SKILL.md || { echo "::error::常驻卡缺 R0 输入闸门（一句话：没有对象+动作时先问，禁止先搜索）"; exit 1; }
+          grep -q '20 秒' SKILL.md || { echo "::error::缺单条命令 20 秒成本上限"; exit 1; }
+          grep -q '禁止从' SKILL.md || { echo "::error::缺'禁止从盘符根递归'"; exit 1; }
+          grep -q '输入闸门' SKILL.md || { echo "::error::正文缺 R0 输入闸门章节"; exit 1; }
 
       - name: 编码与行尾
         run: |

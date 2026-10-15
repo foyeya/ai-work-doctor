@@ -25,6 +25,44 @@ Get-Command rg,git,node,npm,python,curl,findstr -ErrorAction SilentlyContinue |
 | 再兜底 | `findstr /s /n /i /c:"符号" *.ts` |
 | 中文 0 命中 | **不代表不存在**：GNU grep 不做转码，UTF-8 pattern 搜 GBK 文件是**静默 0 命中**。换编码/换同义词/换英文标识符，最多 3 条命令，然后问用户入口 |
 | 限定范围 | 加 `-Include`/`-g`；不要把 `node_modules`、lock 文件、minified 产物读进上下文 |
+| **禁止** | 从盘符根递归：`Get-ChildItem C:\ -Recurse`、`dir /s D:\`、`find / -name`。中文 Windows 上一条这种命令能跑 2 分钟、吐上万行无关结果（实测过一次 `-Recurse -Depth 3` 扫 `C:\`+`D:\` = **1 分 53 秒**），磁盘 IO 全被它占住 |
+| 成本上限 | 搜索命令必须：限定目录 + 深度 ≤3 + 超时（`-TimeoutSec 20` / curl `--max-time 20`）；**单条命令超 20 秒就中止换法** |
+
+### 1.1 "这个软件/文件到底装在哪" —— 5 秒级定位法（比全盘递归快两个数量级）
+
+按顺序试，前三步通常 1 秒内出结果：
+
+```powershell
+# ① PATH 里找
+where.exe 目标名
+
+# ② 已注册的程序（含安装路径）
+Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\App Paths\*'
+Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' |
+  Where-Object DisplayName -match '关键字' | Select-Object DisplayName, InstallLocation
+
+# ③ 跑过的 exe 全路径（MUICache / 兼容性助手 Store，最有用的一招）
+(Get-ItemProperty 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache').PSObject.Properties |
+  Where-Object Name -match '关键字'
+(Get-ItemProperty 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Compatibility Assistant\Store').PSObject.Properties |
+  Where-Object Name -match '关键字'
+
+# ④ 最近运行过的程序名 + 时间（Prefetch）
+Get-ChildItem C:\Windows\Prefetch -Filter *.pf | Where-Object BaseName -match '关键字' |
+  Sort-Object LastWriteTime -Descending | Select-Object -First 10
+
+# ⑤ 开始菜单/桌面快捷方式（解析 TargetPath，别扫盘）
+$sh = New-Object -ComObject WScript.Shell
+Get-ChildItem "$env:APPDATA\Microsoft\Windows\Start Menu\Programs","$env:ProgramData\Microsoft\Windows\Start Menu\Programs" -Recurse -Filter *.lnk |
+  ForEach-Object { $sh.CreateShortcut($_.FullName).TargetPath } | Where-Object { $_ -match '关键字' }
+
+# ⑥ 服务 / 开机启动项（常驻类软件在这）
+Get-Service | Where-Object Name -match '关键字'
+Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+```
+
+⑥ 之后还是找不到，**问用户"装在哪个盘/大概什么目录"**，最后才做限定目录的递归——这是唯一允许的递归顺序。
+（真实案例：为了找某个代理客户端，全盘递归花了 1 分 53 秒且没找到；改用 ②+③ 两步，1 秒内拿到了 `C:\Program Files\ElephantNetwork\ElephantNetwork.exe`——虽然它已被卸载，但结论是确定的。）
 
 ## 2. 编码（GBK / 936）
 
