@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 装了没生效 / 常见问题
+    url: https://github.com/foyeya/ai-work-doctor/blob/main/INSTALL.md
+    about: 先看 INSTALL.md 的「验证生效」「卸载」「各宿主路径」三节，多数问题在那里有答案。
+  - name: 安全相关（越界写文件、规则可被绕过）
+    url: https://github.com/foyeya/ai-work-doctor/blob/main/SECURITY.md
+    about: 不要在公开 issue 里粘贴凭据；按 SECURITY.md 的方式报告。

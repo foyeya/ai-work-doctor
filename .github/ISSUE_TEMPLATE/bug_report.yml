@@ -1,0 +1,76 @@
+name: Bug 报告
+description: 装了没生效、脚本报错、规则没拦住、内容被改坏
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。请**不要**粘贴任何 token、私钥或生产连接串。
+        先看 INSTALL.md 的「验证生效」与 README 的 FAQ，多数问题在那里有答案。
+  - type: dropdown
+    id: host
+    attributes:
+      label: 宿主（agent 客户端）
+      options:
+        - Codex CLI
+        - Claude Code
+        - Cursor
+        - Cline
+        - Roo Code
+        - Windsurf
+        - Continue
+        - OpenHands
+        - Gemini CLI
+        - Qwen Code
+        - DSH
+        - Trae / 通义灵码 / 文心快码 / CodeBuddy
+        - 其他（在下面补充）
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: 操作系统与终端
+      placeholder: Windows 11 + PowerShell 5.1 (chcp 936) / macOS 14 + zsh
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 问题类型
+      options:
+        - 装了但没生效
+        - 技能列表里看不到 / 名字不对
+        - 安装脚本报错（执行策略、编码、权限）
+        - 卸载不干净 / 我的内容被改了
+        - 规则没拦住（agent 依旧空转/假装完成/危险操作）
+        - 文档里的命令或路径有误
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: 发生了什么
+      description: 你执行的完整命令 + 实际输出 + 期望结果。涉及脚本请附 -DryRun / -List 的输出。
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 证据
+      description: |
+        例如：`install.ps1 -List` 输出、全局指令文件里标记块前后的片段、
+        `chcp` 结果、`$PSVersionTable.PSVersion`、以及 agent 出现问题的对话片段。
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我已经看过 README 的 FAQ 和 INSTALL.md 的「验证生效 / 卸载」
+          required: true
+        - label: 我删掉了粘贴内容里的 token / 私钥 / 生产连接串
+          required: true

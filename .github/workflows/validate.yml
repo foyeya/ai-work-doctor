@@ -1,0 +1,94 @@
+name: validate
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  skill:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: SKILL.md frontmatter 合法（第一行必须是裸 ---）
+        run: |
+          set -e
+          head -n 1 SKILL.md | grep -qx -- '---' || { echo "::error::SKILL.md 第一行必须是裸 ---"; exit 1; }
+          if grep -n '^\\---' SKILL.md; then
+            echo "::error::frontmatter 被转义成 \\---，宿主会静默忽略整条技能"; exit 1
+          fi
+          name=$(sed -n '2s/^name:[[:space:]]*//p' SKILL.md | tr -d '\r')
+          echo "skill name: $name"
+          echo "$name" | grep -Eq '^[a-z0-9]+(-[a-z0-9]+)*$' \
+            || { echo "::error::name 必须匹配 ^[a-z0-9]+(-[a-z0-9]+)*$（中文名放 metadata.displayName）"; exit 1; }
+          grep -q '^description:' SKILL.md || { echo "::error::缺 description"; exit 1; }
+
+      - name: 常驻卡标记存在且非空
+        run: |
+          set -e
+          grep -q 'AIW_CORE:START' SKILL.md
+          grep -q 'AIW_CORE:END' SKILL.md
+          core=$(sed -n '/AIW_CORE:START/,/AIW_CORE:END/p' SKILL.md | wc -l)
+          echo "常驻卡行数：$core"
+          [ "$core" -le 34 ] || { echo "::error::常驻卡超过 30 行硬顶，请删掉等量内容"; exit 1; }
+
+      - name: 编码与行尾
+        run: |
+          set -e
+          if grep -rlU $'\r' install.sh activate.cmd 2>/dev/null | grep -q install.sh; then
+            echo "::error::install.sh 含 CRLF，Linux/macOS 会报 bad interpreter"; exit 1
+          fi
+          head -c 3 install.ps1 | xxd -p | grep -qi '^efbbbf$' \
+            || { echo "::error::install.ps1 必须是 UTF-8 with BOM（PowerShell 5.1 解析中文需要）"; exit 1; }
+
+      - name: bash 语法
+        run: bash -n install.sh
+
+      - name: PowerShell 语法
+        shell: pwsh
+        run: |
+          $e = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile("$PWD/install.ps1", [ref]$null, [ref]$e)
+          if ($e -and $e.Count) { $e | ForEach-Object { Write-Error $_.Message }; exit 1 }
+          "parse ok"
+
+      - name: 安装脚本自测（全局：幂等 + 卸载还原 + 不越界 + 嗅探）
+        shell: pwsh
+        run: |
+          $t = Join-Path ([IO.Path]::GetTempPath()) ("aiw-" + [guid]::NewGuid().ToString("N"))
+          New-Item -ItemType Directory -Force -Path (Join-Path $t ".codex") | Out-Null
+          New-Item -ItemType Directory -Force -Path (Join-Path $t ".trae/rules") | Out-Null   # 候选宿主嗅探
+          New-Item -ItemType Directory -Force -Path (Join-Path $t ".lingma") | Out-Null        # 只有目录，不该被写
+          $f = Join-Path $t ".codex/AGENTS.md"
+          [IO.File]::WriteAllText($f, "# user content`n", (New-Object Text.UTF8Encoding($false)))
+          & ./install.ps1 -Root $t | Out-Null
+          if ((Select-String -Path $f -Pattern 'ai-work-doctor:start' -SimpleMatch).Count -ne 1) { throw "注入次数不对" }
+          if (-not (Test-Path (Join-Path $t ".trae/rules/ai-work-doctor.md"))) { throw "候选宿主嗅探没有写入" }
+          if (Test-Path (Join-Path $t ".lingma/rules")) { throw "给未证实的宿主创建了目录" }
+          $h1 = (Get-FileHash $f).Hash
+          & ./install.ps1 -Root $t | Out-Null
+          if ((Get-FileHash $f).Hash -ne $h1) { throw "非幂等：重复运行改变了文件" }
+          & ./install.ps1 -Root $t -Uninstall | Out-Null
+          if ((Get-Content $f -Raw).Trim() -ne "# user content") { throw "卸载没有还原用户内容" }
+          if (Test-Path (Join-Path $t ".trae/rules/ai-work-doctor.md")) { throw "卸载没删掉嗅探写入的文件" }
+          "global self-test ok"
+
+      - name: 安装脚本自测（项目级：写入 + 幂等 + 卸载干净）
+        shell: pwsh
+        run: |
+          $p = Join-Path ([IO.Path]::GetTempPath()) ("aiwp-" + [guid]::NewGuid().ToString("N"))
+          New-Item -ItemType Directory -Force -Path $p | Out-Null
+          & ./install.ps1 -Project $p | Out-Null
+          foreach ($rel in @("AGENTS.md", ".trae/rules/project_rules.md", ".cursor/rules/ai-work-doctor.mdc")) {
+            if (-not (Test-Path (Join-Path $p $rel))) { throw "项目级没写入 $rel" }
+          }
+          $mdc = Get-Content (Join-Path $p ".cursor/rules/ai-work-doctor.mdc") -Raw
+          if (-not $mdc.StartsWith("---")) { throw ".mdc 缺 frontmatter，Cursor 不会加载" }
+          if (Test-Path (Join-Path $p ".lingma")) { throw "写了未证实的项目路径（应加 -All 才写）" }
+          $h = (Get-FileHash (Join-Path $p "AGENTS.md")).Hash
+          & ./install.ps1 -Project $p | Out-Null
+          if ((Get-FileHash (Join-Path $p "AGENTS.md")).Hash -ne $h) { throw "项目级非幂等" }
+          & ./install.ps1 -Project $p -Uninstall | Out-Null
+          if ((Get-ChildItem -LiteralPath $p -Recurse -File).Count -ne 0) { throw "项目级卸载没清干净" }
+          "project self-test ok"

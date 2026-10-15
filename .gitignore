@@ -1,0 +1,9 @@
+*.zip
+*.tar.gz
+.DS_Store
+Thumbs.db
+SHA256SUMS.txt
+.ccgui/
+*.bak-*
+.vscode/
+.idea/
