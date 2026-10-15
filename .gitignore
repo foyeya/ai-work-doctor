@@ -7,3 +7,5 @@ SHA256SUMS.txt
 *.bak-*
 .vscode/
 .idea/
+eval/results/*.csv
+eval/results/*.json

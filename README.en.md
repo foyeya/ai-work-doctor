@@ -134,18 +134,43 @@ Can't answer? See the pinned issue [装了没生效？先看这 5 步](https://g
 | **Global (user-level)** | `install.ps1` / `install.sh` | `~/.codex/AGENTS.md`, `~/.claude/CLAUDE.md`, `~/.trae/user_rules/`, `~/.codebuddy/CODEBUDDY.md` … + user-level `skills/` | CLI-style agents |
 | **Project-level** | `-Project <dir>` | `AGENTS.md`, `CODEBUDDY.md`, `.trae/rules/`, `.codebuddy/rules/`, `.comate/rules/*.mdr`, `.cursor/rules/*.mdc` … | IDE-style agents whose user rules live in the GUI |
 
+## How it raises the model's *effective* intelligence
+
+A high parameter count doesn't mean the model uses it. This layer targets **"will the model actually use what it has"** —
+seven expert perspectives worked in parallel (reasoning control / anti-laziness / compaction fidelity / taste /
+Chinese models / international models / measurable evals) and it landed as **3 new rules + 2 upgrades**
+(always-on card: 20 → 23 content lines — it did not get fatter):
+
+| Real, frequent symptom | Rule | Observable receipt |
+|---|---|---|
+| After context compaction the port, path and prohibitions are gone — and it re-walks the same dead end | **R15 re-anchor after compaction** | `REANCHOR: goal / hard constraints / changed / open items / failures`. The trigger **must** live in the always-on card: compaction replaces history, but **the card itself is never compacted** |
+| You list 5 things, it does 3 and stays quiet; stub code passes as done; "tests pass" without running them | **R16 delivery reconciliation** | `DONE m/N`, `NOSTUB: path:line`, `UNVERIFIED: entrypoint` |
+| "Sure, I'd be happy to help…", "Hope this helps", drifting into English in a Chinese task, unrelated refactors | **R17 ship the artifact + language lock** | Artifact on line 1; decorative emoji 0; self-authored English sentences 0; net added lines ≤0 for refactors |
+| Long silent reasoning that never crosses the circuit-breaker (the counter only watched tool calls) | **R4 upgrade (costs 0 lines)** | `STALL at N: <conclusion> argued x2, no new evidence` |
+| A 12-line plan for a one-line change / a big change with no plan / wrong direction discovered after the work | **R8 think-first with expectations** | `EXPECT: <action> → <observable result>`, `WHY: <assumption> wrong → switch to <new one>` |
+
+The detail doesn't sit in the card: reasoning tiers with paper-level evidence, stub-scanning commands, the task-ledger
+protocol, mechanically checkable taste rules, and **behaviour tables for 12 Chinese models plus the international ones**
+(each row graded by evidence level) live in `references/iq-*.md`, read only when the situation calls for it.
+
+**Why "effective" and not "smarter"?** `eval/` ships 14 behaviour probes (6 of them hard-fail) for a before/after paired
+comparison: **+5 points and fewer hard failures** is the bar; the absolute band is informational only.
+An honest boundary: a prompt layer cannot raise the parameter ceiling — it removes waste, stabilises a wildly varying
+floor, and corrects model-specific habits. The probes measure **behavioural discipline, not intelligence**.
+
 ## Why it isn't bloated (three layers)
 
 | Layer | Contents | When it enters context |
 |---|---|---|
-| **Always-on card** (injected by the installer) | 14 one-line rules + fixed receipt format (20 lines) | Every request — which is why it must stay short |
+| **Always-on card** (injected by the installer) | input gate + 17 one-line rules + fixed receipt format (25 lines incl. markers) | Every request — which is why it must stay short |
 | **SKILL.md body** | Trigger / action / cap / counter-example per rule, vague-request mapping, boundaries, self-check | Loaded on demand |
+| **`references/iq-*.md`** | reasoning control, anti-laziness, ledger protocol, checkable taste, Chinese & international model tables (6 files, ~200KB) | Only on the matching situation — zero cost by default |
 | **references/desktop-cn.md** | Command-level pitfalls (encoding, paths, ports, mirrors, hanging commands…) | Only when the symptom appears |
 
 The installer extracts the card from `SKILL.md` between `AIW_CORE` markers (single source of truth), writes it
 idempotently, previews with `-DryRun` and removes it precisely with `-Uninstall`.
 
-## The 15 rules
+## The 18 rules
 
 | # | Rule | Accident it prevents |
 |---|---|---|
@@ -156,14 +181,20 @@ idempotently, previews with `-DryRun` and removes it precisely with `-Uninstall`
 | R4 | Stall circuit-breaker | "One more try" with no new information; repeated `EPERM`/path-too-long failures |
 | R5 | Behavior-level verification | "It compiles / the port is up" reported as "done" |
 | R6 | Budget caps (counts **and 20s per command**) | Retrying the same failing command forever; one slow command eating the whole turn |
-| R7 | Close out processes and ports | Leftover dev servers, occupied ports, accumulating processes |
-| R8 | Only kill your own processes | `taskkill /IM node.exe /F` killing the user's IDE |
+| R7 | Close out processes **and only kill your own** | Leftover dev servers, occupied ports, `taskkill /IM node.exe /F` killing the user's IDE |
+| R8 | Think first, act with an expectation | A 12-line plan for a one-line change; a big change with no plan; `EXPECT:` / `WHY:` receipts, a minimal verifiable slice for T2 work |
 | R9 | Non-interactive execution | `npm login` / `rebase -i` hanging forever, session blocked |
 | R10 | Back up before writing | Overwriting user files, deleting work that was never committed |
 | R11 | Two-phase gate for irreversible ops | `push --force`, `reset --hard`, editing PATH/hosts/registry |
 | R12 | Never write secrets to disk | Tokens and keys landing in code, logs or commits |
 | R13 | Unattended time wall | You leave; it burns three hours and reports "still trying" |
 | R14 | Assume Chinese Windows | GBK mojibake, `&&` syntax errors, `curl` alias, BOM breaking JSON |
+| R15 | Re-anchor after compaction | Hard constraints (port, path, prohibitions) vanishing into a summary; re-walking a dead end that already failed |
+| R16 | Delivery reconciliation | 5 requests, 3 delivered silently; stub code as "done"; "tests pass" with nothing run this session |
+| R17 | Ship the artifact + language lock | "Sure, happy to help…", "Hope this helps", English drift in Chinese tasks, unrelated refactors |
+
+(Also upgraded in place: **R4** now also trips on *pure reasoning* stalls — two turns of re-arguing the same conclusion
+with no tool call and no new fact prints `STALL at N:`.)
 
 ## Coverage
 
@@ -224,6 +255,10 @@ contain nothing but our block are deleted outright.
 ai-work-doctor/
 ├── SKILL.md                  # the skill (the always-on card sits between AIW_CORE markers)
 ├── references/desktop-cn.md  # Chinese-Windows pitfall table (read on demand)
+├── references/iq-*.md        # reasoning / anti-lazy / ledger / checkable taste / CN + intl model behaviour
+├── eval/                     # 14 behaviour probes + scorer (paired before/after comparison)
+├── references/iq-*.md        # reasoning / anti-lazy / ledger / taste / CN & intl model behaviour (read on demand)
+├── eval/                     # 14 behaviour probes + scorer (before/after paired comparison)
 ├── install.ps1               # Windows: -List / -Select / -Only / -DryRun / -Uninstall / -Project
 ├── install.sh                # macOS / Linux / Git Bash: -l / -i / --only / -n / -u / -p
 ├── activate.cmd              # Windows double-click → host menu

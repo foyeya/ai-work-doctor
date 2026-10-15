@@ -31,12 +31,22 @@ jobs:
           grep -q 'AIW_CORE:END' SKILL.md
           core=$(sed -n '/AIW_CORE:START/,/AIW_CORE:END/p' SKILL.md | wc -l)
           echo "常驻卡行数：$core"
-          [ "$core" -le 34 ] || { echo "::error::常驻卡超过 30 行硬顶，请删掉等量内容"; exit 1; }
+          [ "$core" -le 30 ] || { echo "::error::常驻卡超过 30 行硬顶（含 2 行标记），请先合并或删掉等量内容"; exit 1; }
           # 关键闸门不许被删（R0 输入闸门 / 成本上限 / 单条命令 20 秒）—— 都是按真实事故加的
           grep -q '第 0 条' SKILL.md || { echo "::error::常驻卡缺 R0 输入闸门（一句话：没有对象+动作时先问，禁止先搜索）"; exit 1; }
           grep -q '20 秒' SKILL.md || { echo "::error::缺单条命令 20 秒成本上限"; exit 1; }
           grep -q '禁止从' SKILL.md || { echo "::error::缺'禁止从盘符根递归'"; exit 1; }
           grep -q '输入闸门' SKILL.md || { echo "::error::正文缺 R0 输入闸门章节"; exit 1; }
+          # v2.4.0 的智商层三条闸门 + 两条既有行增强，同样不许被静默删掉
+          grep -q 'REANCHOR' SKILL.md || { echo "::error::缺 R15 压缩/接管后重锚（REANCHOR）"; exit 1; }
+          grep -q 'DONE m/N' SKILL.md || { echo "::error::缺 R16 交付对账（DONE m/N）"; exit 1; }
+          grep -q 'EXPECT:' SKILL.md || { echo "::error::缺 R8 动手必有预期（EXPECT:）"; exit 1; }
+          grep -q '交付即成品' SKILL.md || { echo "::error::缺 R17 交付即成品"; exit 1; }
+          grep -q '语言锁' SKILL.md || { echo "::error::缺 R17 语言锁"; exit 1; }
+          grep -q 'STALL at N' SKILL.md || { echo "::error::缺 R4 纯推理空转熔断（STALL at N）"; exit 1; }
+          for f in references/iq-reasoning.md references/iq-nolazy.md references/iq-ledger.md references/iq-taste.md references/iq-models-cn.md references/iq-models-intl.md; do
+            [ -s "$f" ] || { echo "::error::按需层文档缺失或为空：$f"; exit 1; }
+          done
 
       - name: 编码与行尾
         run: |
@@ -46,6 +56,25 @@ jobs:
           fi
           head -c 3 install.ps1 | xxd -p | grep -qi '^efbbbf$' \
             || { echo "::error::install.ps1 必须是 UTF-8 with BOM（PowerShell 5.1 解析中文需要）"; exit 1; }
+          head -c 3 eval/run.ps1 | xxd -p | grep -qi '^efbbbf$' \
+            || { echo "::error::eval/run.ps1 必须是 UTF-8 with BOM"; exit 1; }
+
+      - name: 评测器械自检（探针 JSON + 打分器语法）
+        shell: pwsh
+        run: |
+          $j = Get-Content "$PWD/eval/probes.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($j.probes.Count -lt 10) { throw "探针少于 10 条（现在 $($j.probes.Count)）" }
+          $sum = ($j.probes | Measure-Object points -Sum).Sum
+          if ($sum -ne ($j.probes.Count * 2)) { throw "每条探针应为 2 分，当前合计 $sum" }
+          foreach ($p in $j.probes) {
+            foreach ($k in 'id', 'dim', 'title', 'prompt', 'pass', 'fail') {
+              if (-not $p.$k) { throw "探针 $($p.id) 缺字段 $k" }
+            }
+          }
+          $e = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile("$PWD/eval/run.ps1", [ref]$null, [ref]$e)
+          if ($e -and $e.Count) { $e | ForEach-Object { Write-Error $_.Message }; exit 1 }
+          "eval self-test ok: $($j.probes.Count) 条探针 / 满分 $sum"
 
       - name: bash 语法
         run: bash -n install.sh
