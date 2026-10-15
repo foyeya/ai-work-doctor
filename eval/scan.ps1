@@ -102,6 +102,7 @@ DONE 2/2：utils.py:42 已定位；未改动任何文件
     "  干净转录：硬失败 $($rcl.HardFail.Count) 类（期望 0）、回执命中 $($rcl.Receipts.Count) 种（期望 ≥2）"
     $ok = ($rd.HardFail.Count -ge 6) -and ($rcl.HardFail.Count -eq 0) -and ($rcl.Receipts.Count -ge 2)
     Write-Host ("  自测结论：{0}" -f $(if ($ok) { 'PASS' } else { 'FAIL（判定器不可信，先修它）' })) -ForegroundColor $(if ($ok) { 'Green' } else { 'Red' })
+    Write-Host ("SELFTEST: " + $(if ($ok) { 'PASS' } else { 'FAIL' }))   # ASCII 结论行，供 CI 断言
     if (-not $ok) { exit 1 }
     return
 }

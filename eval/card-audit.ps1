@@ -76,6 +76,7 @@ if ($SelfTest) {
     $rg.Warns | ForEach-Object { "    WARN - $_" }
     $ok = ($rb.Errors.Count -eq 2) -and ($rg.Errors.Count -eq 0) -and ($rg.Warns.Count -eq 0)
     Write-Host ("  自测结论：{0}" -f $(if ($ok) { 'PASS' } else { 'FAIL' })) -ForegroundColor $(if ($ok) { 'Green' } else { 'Red' })
+    Write-Host ("SELFTEST: " + $(if ($ok) { 'PASS' } else { 'FAIL' }))   # ASCII 结论行，供 CI 断言（runner 临时脚本无 BOM，中文串会被按 ANSI 解码）
     if (-not $ok) { exit 1 }
     return
 }
@@ -95,6 +96,7 @@ if ($r.Warns.Count -gt 0) {
     Write-Host ("  WARN {0} 条（不阻塞，但值得补固定回执）：" -f $r.Warns.Count) -ForegroundColor Yellow
     $r.Warns | ForEach-Object { Write-Host "    - $_" -ForegroundColor Yellow }
 }
+Write-Host ("ERRORS: " + $r.Errors.Count)   # ASCII 结论行，供 CI 断言
 if ($r.Errors.Count -eq 0) {
     Write-Host '  ERROR：0（每条规则都有数字上限，卡长在硬顶之内，无代码块）' -ForegroundColor Green
 } else {
