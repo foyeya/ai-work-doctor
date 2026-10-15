@@ -113,6 +113,8 @@ Cursor 只认 `.mdc`（同目录 `.md` 会被忽略）。**结构写错 = 静默
 | 不越界 | 只写"检测到"的宿主；`-Root` 沙箱下 `%APPDATA%`、`Documents` 都不跑出沙箱 | 未检测到的宿主不建目录 |
 | 按需安装 | `-Select` 菜单 / `-Only` 点名 / 双击 `activate.cmd` | 菜单显示"是否已安装 + 将写哪个文件" |
 | CI 校验 | frontmatter 合法、`name` 正则、常驻卡行数、编码、脚本语法、全局+项目级自测（幂等/还原/不越界） | `.github/workflows/validate.yml` |
+| 评审器自测 | 两个机械评审器（常驻卡审计 / 转录判分）都带 `-SelfTest`：坏样本必抓、好样本不误伤，进 CI | `eval\card-audit.ps1 -SelfTest`、`eval\scan.ps1 -SelfTest` |
+| 实测探针 | 6 条行为探针真跑（5 通过 / 1 失败），失败那条直接改了 R11；装前对照判出盘符根递归 | `eval\README.md` 的实测表 |
 | 无依赖 | 只用 PowerShell 5.1 / bash 内建能力；不联网、不改注册表、不要管理员 | 通读 `install.ps1`（约 30 KB，含注释） |
 
 **开发过程也是证据**：v2.0 由 5 个独立专家视角评审（中文 Windows 环境实测、宿主注入机制、规则工程、

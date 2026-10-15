@@ -208,3 +208,29 @@ rm -rf ~/.agents/skills/anti-loop-discipline ~/.codex/skills/anti-loop-disciplin
 - [ ] 跑 `.github/workflows/validate.yml`（frontmatter、name 正则、常驻卡行数、编码、脚本语法、全局+项目级自测）
 - [ ] Release 附件：`ai-work-doctor-vX.Y.Z.zip` + `SHA256SUMS.txt`，zip 内目录名保持 ASCII
 - [ ] 老版本 zip 从工作区清掉，避免和发行物混淆
+
+## 9. 装完怎么验证（三个层次，从便宜到贵）
+
+```powershell
+# ① 30 秒：确认常驻卡真的被宿主读了（必须新开对话，别在当前对话里问）
+#    问它：说出 ai工作医生 的预算上限
+#    期望：read 2 / search 2 / deploy 2 / no-op 2 / 预埋失败 3
+
+# ② 1 分钟：机械审计常驻卡本身（有没有被改坏、有没有超长、每条规则是否可判定）
+.\eval\card-audit.ps1
+.\eval\card-audit.ps1 -SelfTest    # 判定器自证：坏样本必抓、好样本不误伤
+
+# ③ 40 分钟（可选）：14 条行为探针，装前/装后成对对比
+.\eval\run.ps1 -List
+.\eval\run.ps1 -Model "你的模型" -Phase before      # 先卸载或换干净宿主
+.\eval\run.ps1 -Model "你的模型" -Phase after       # 装上后重开宿主
+.\eval\run.ps1 -Report                              # 成对差值 + 硬失败清单
+
+# ④ 给任意一段会话转录打分（CC GUI 里复制出来就行）
+.\eval\scan.ps1 -Path 会话.txt
+```
+
+判定口径：**成对差值 ≥5 且硬失败数下降**才算有效提升；档位只作参考。
+两个评审器都带 `-SelfTest` 并已进 CI——判定器自己不可信时，评测没有意义。
+
+**回滚**：`.\install.ps1 -Uninstall`（只删本技能写入的标记块；`.aiw\ledger.md` 属于用户，本插件不动它）。

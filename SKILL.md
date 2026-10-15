@@ -15,7 +15,7 @@ metadata:
   previousName: anti-loop-discipline
   category: agent-reliability
   scope: global
-  version: "2.4.1"
+  version: "2.4.2"
   language: zh-CN + en (bilingual triggers; rules are language-agnostic)
 ---
 
