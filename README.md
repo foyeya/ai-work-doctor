@@ -1,5 +1,7 @@
 # ai工作医生（ai-work-doctor）
 
+[English](README.en.md) · **中文**
+
 **给你的桌面端 AI 编程助手装上「熔断器 + 行车记录仪」。**
 
 它不教 agent 把代码写得更好，只保证三件事：
@@ -114,7 +116,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1 -Project D:\my-app       
 ### 验证生效（别猜）
 
 新开一个对话，问 agent：**"说出 ai工作医生 的预算上限"** → 期望 `read 2 / search 2 / deploy 2 / no-op 2 / tool-err 3`。
-答不出来看 FAQ「装了没生效」。
+答不出来 → 先看 pinned issue **[装了没生效？先看这 5 步](https://github.com/foyeya/ai-work-doctor/issues/1)**（90% 是没新开对话或宿主不读文件）。
 
 ### 卸载
 
