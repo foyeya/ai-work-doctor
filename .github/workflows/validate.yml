@@ -152,10 +152,10 @@ jobs:
         run: |
           # 只断言「输出里的结论」，不依赖 $LASTEXITCODE（& script.ps1 不会可靠设置它，第一次就是这么红掉的）
           # 断言只认 ASCII 结论行：runner 会把内联步骤写成无 BOM 的临时 .ps1，中文串会被按 ANSI 解码
-          $a = & ./eval/card-audit.ps1 -SelfTest | Out-String
+          $a = & ./eval/card-audit.ps1 -SelfTest 6>&1 | Out-String
           if ($a -notmatch 'SELFTEST: PASS') { throw 'card-audit self-test failed: the judge itself is not trustworthy' }
-          $b = & ./eval/scan.ps1 -SelfTest | Out-String
+          $b = & ./eval/scan.ps1 -SelfTest 6>&1 | Out-String
           if ($b -notmatch 'SELFTEST: PASS') { throw 'scan self-test failed: the judge itself is not trustworthy' }
-          $d = & ./eval/card-audit.ps1 | Out-String
+          $d = & ./eval/card-audit.ps1 6>&1 | Out-String
           if ($d -notmatch 'ERRORS: 0') { throw 'card audit reported errors (missing caps / over 30 lines / code block inside card)' }
           "judges self-test + card audit ok"
