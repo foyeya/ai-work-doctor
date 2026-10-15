@@ -52,7 +52,7 @@ if ($Report) {
             模型与阶段 = $_.Name
             总分       = ($g | Measure-Object score -Sum).Sum
             满分       = ($g | Measure-Object points -Sum).Sum
-            硬失败     = ($g | Where-Object { [int]$_.hard_fail -eq 1 }).Count
+            硬失败     = @($g | Where-Object { [int]$_.hard_fail -eq 1 }).Count
             失败项     = (($g | Where-Object { [int]$_.score -eq 0 } | ForEach-Object { $_.id }) -join ',')
             时间       = ($g | Select-Object -First 1).time
         }
@@ -67,8 +67,8 @@ if ($Report) {
         if ($b -and $a) {
             $bs = ($b | Measure-Object score -Sum).Sum
             $as = ($a | Measure-Object score -Sum).Sum
-            $bhf = ($b | Where-Object { [int]$_.hard_fail -eq 1 }).Count
-            $ahf = ($a | Where-Object { [int]$_.hard_fail -eq 1 }).Count
+            $bhf = @($b | Where-Object { [int]$_.hard_fail -eq 1 }).Count
+            $ahf = @($a | Where-Object { [int]$_.hard_fail -eq 1 }).Count
             $gain = $as - $bs
             $verdict = if ($gain -ge 5 -and $ahf -lt $bhf) { '有效提升（≥5 分且硬失败下降）' }
                        elseif ($gain -ge 5 -and $ahf -eq $bhf) { '有提升（分数够，硬失败没降）' }
@@ -128,7 +128,7 @@ $rows | Export-Csv -LiteralPath $out -NoTypeInformation -Encoding UTF8
 $total = ($rows | Measure-Object score -Sum).Sum
 $max = ($rows | Measure-Object points -Sum).Sum
 $band = if ($total -le 13) { '差' } elseif ($total -le 20) { '中' } else { '好' }
-$hfCount = ($rows | Where-Object { [int]$_.hard_fail -eq 1 }).Count
+$hfCount = @($rows | Where-Object { [int]$_.hard_fail -eq 1 }).Count
 Write-Host ("`n总分 {0}/{1}   档位：{2}   硬失败：{3} 条" -f $total, $max, $band, $hfCount) -ForegroundColor Green
 if ($hfCount -gt 0) {
     Write-Host "  硬失败明细（这类比丢 2 分严重）：" -ForegroundColor Red
