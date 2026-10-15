@@ -15,7 +15,7 @@ metadata:
   previousName: anti-loop-discipline
   category: agent-reliability
   scope: global
-  version: "2.4.0"
+  version: "2.4.1"
   language: zh-CN + en (bilingual triggers; rules are language-agnostic)
 ---
 
@@ -43,7 +43,7 @@ metadata:
 8. **想清才动手，动手必有预期**：跨 ≥3 模块 / 改配置 / 起停进程 / 不可逆 → 先切**最小可验证切片**（≤1 文件或 ≤1 条命令就能证明方向对不对）再铺开；单文件单点改 → 不写计划直接做；任何有副作用的动作前先写一行 `EXPECT: <动作> → <可观察结果>`（≤40 字，禁计划书），动作后立即对账，不符就打印 `WHY: <原假设> 错 → 改 <新假设>`，同一假设落空 2 次必换。
 9. **非交互执行**：外部命令一律带非交互参数（`-y` / `CI=1` / `--no-pager` / `-o BatchMode=yes` / `commit -m`）。命令在等输入就判卡死：终止并改用非交互形态，不要干等。
 10. **先备份后写**：删除/覆盖/批量替换前先备份（`<file>.bak-<时间戳>` 或 `git stash`/`commit`），只改任务清单内的路径；改前改后各取一次文件哈希；工作区有别人的未提交改动就先停手确认。
-11. **不可逆两阶段闸门**：`--force`、`reset --hard`、`clean -fdx`、`DROP/TRUNCATE`、改 PATH/hosts/注册表/开机自启 → 先打印 `IMPACT: <命令> 将不可逆影响 <目标>`，等用户确认；用户没回就不做。
+11. **不可逆两阶段闸门**：`--force`、`reset --hard`、`clean -fdx`、`DROP/TRUNCATE`、改 PATH/hosts/注册表/开机自启 → 先打印 `IMPACT: <命令> 将不可逆影响 <目标>（含将被丢弃/覆盖的文件清单）` 并做备份（`stash` 或 `<file>.bak-<时间戳>`），再等用户确认；**用户没回就不做**。用户已经说过「直接来/别问」时：仍然先打 `IMPACT:` 与备份路径（≤1 行）再执行——**授权只免掉等待，不免掉影响面与备份**。
 12. **密钥不落盘**：token / 私钥 / 生产连接串不写进代码、日志、报告、commit；交付前自查一次应 0 命中。
 13. **无人值守设墙**：用户离开或预估 >30 分钟 → 先声明预算（≤N 次调用 / ≤M 分钟），每 10 步或 10 分钟写一次 `CHECKPOINT: 改了什么 / 验证了什么 / 下一步`；到点必须停并给 HANDOFF。
 14. **中文 Windows 默认假设**：GBK/936 控制台；中文或含空格路径一律加引号；不用 `grep/sed/head`（用 `Select-String`/`findstr`）；PowerShell 5.1 没有 `&&`；写中文文件用 `[IO.File]::WriteAllText($p,$t,(New-Object Text.UTF8Encoding($false)))`。撞上具体症状去查 `references/desktop-cn.md`。
@@ -202,6 +202,9 @@ Copy-Item -LiteralPath $p -Destination "$p.bak-$(Get-Date -Format yyyyMMddHHmmss
 1. 打印一行：`IMPACT: <命令> 将不可逆影响 <目标>（备份：<路径 或 无>）`；
 2. **等用户明确确认**；
 3. 用户没回 = 不做。不许把沉默当默认通过。
+4. **用户已经授权时（「直接来」「别问了」「你来决定」）**：授权只免掉第 2 步的等待，**不免掉第 1 步的影响面与备份**——
+   仍然先打一行 `IMPACT:` + 备份路径（`git stash` / `<file>.bak-<时间戳>`）再执行；做不到备份就写明为什么。
+   （这条是实测一个探针失败后补的：探针里用户说了「直接来」，agent 就直接 `git reset --hard` + `clean -fd`，未提交改动无法恢复。）
 
 ### R12 密钥不落盘
 - token / `AKIA` / `ghp_` / `BEGIN PRIVATE KEY` / 生产连接串不写进代码、日志、报告、commit；

@@ -147,3 +147,13 @@ jobs:
           & ./install.ps1 -Project $p -Uninstall | Out-Null
           if ((Get-ChildItem -LiteralPath $p -Recurse -File).Count -ne 0) { throw "项目级卸载没清干净" }
           "project self-test ok"
+      - name: 评审器自测 + 审计自己的常驻卡
+        shell: pwsh
+        run: |
+          & ./eval/card-audit.ps1 -SelfTest | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "card-audit 自测失败：判定器不可信" }
+          & ./eval/scan.ps1 -SelfTest | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "scan 自测失败：判定器不可信" }
+          & ./eval/card-audit.ps1
+          if ($LASTEXITCODE -ne 0) { throw "常驻卡审计报 ERROR" }
+          "judges self-test + card audit ok"
