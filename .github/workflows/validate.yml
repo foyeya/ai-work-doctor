@@ -53,39 +53,60 @@ jobs:
           if ($e -and $e.Count) { $e | ForEach-Object { Write-Error $_.Message }; exit 1 }
           "parse ok"
 
-      - name: 安装脚本自测（全局：幂等 + 卸载还原 + 不越界 + 嗅探）
+      - name: 安装脚本自测（全局：幂等 + 卸载还原 + 不越界）
         shell: pwsh
         run: |
           $t = Join-Path ([IO.Path]::GetTempPath()) ("aiw-" + [guid]::NewGuid().ToString("N"))
           New-Item -ItemType Directory -Force -Path (Join-Path $t ".codex") | Out-Null
-          New-Item -ItemType Directory -Force -Path (Join-Path $t ".trae/rules") | Out-Null   # 候选宿主嗅探
-          New-Item -ItemType Directory -Force -Path (Join-Path $t ".lingma") | Out-Null        # 只有目录，不该被写
+          New-Item -ItemType Directory -Force -Path (Join-Path $t ".trae/user_rules") | Out-Null   # Trae 已证实的全局规则目录
+          New-Item -ItemType Directory -Force -Path (Join-Path $t ".lingma") | Out-Null            # 只有 skills，不该建 rules
           $f = Join-Path $t ".codex/AGENTS.md"
           [IO.File]::WriteAllText($f, "# user content`n", (New-Object Text.UTF8Encoding($false)))
           & ./install.ps1 -Root $t | Out-Null
           if ((Select-String -Path $f -Pattern 'ai-work-doctor:start' -SimpleMatch).Count -ne 1) { throw "注入次数不对" }
-          if (-not (Test-Path (Join-Path $t ".trae/rules/ai-work-doctor.md"))) { throw "候选宿主嗅探没有写入" }
-          if (Test-Path (Join-Path $t ".lingma/rules")) { throw "给未证实的宿主创建了目录" }
+          if (-not (Test-Path (Join-Path $t ".trae/user_rules/ai-work-doctor.md"))) { throw "Trae 全局规则没写入" }
+          if (Test-Path (Join-Path $t ".lingma/rules")) { throw "给未证实路径创建了目录" }
           $h1 = (Get-FileHash $f).Hash
           & ./install.ps1 -Root $t | Out-Null
           if ((Get-FileHash $f).Hash -ne $h1) { throw "非幂等：重复运行改变了文件" }
           & ./install.ps1 -Root $t -Uninstall | Out-Null
           if ((Get-Content $f -Raw).Trim() -ne "# user content") { throw "卸载没有还原用户内容" }
-          if (Test-Path (Join-Path $t ".trae/rules/ai-work-doctor.md")) { throw "卸载没删掉嗅探写入的文件" }
+          if (Test-Path (Join-Path $t ".trae/user_rules/ai-work-doctor.md")) { throw "卸载没删掉写入的文件" }
           "global self-test ok"
 
-      - name: 安装脚本自测（项目级：写入 + 幂等 + 卸载干净）
+      - name: 安装脚本自测（按 agent 单独安装 / 单独卸载）
+        shell: pwsh
+        run: |
+          $t = Join-Path ([IO.Path]::GetTempPath()) ("aiws-" + [guid]::NewGuid().ToString("N"))
+          New-Item -ItemType Directory -Force -Path (Join-Path $t ".codex") | Out-Null
+          New-Item -ItemType Directory -Force -Path (Join-Path $t ".dsh")   | Out-Null
+          & ./install.ps1 -Root $t -Only codex | Out-Null
+          if (-not (Test-Path (Join-Path $t ".codex/AGENTS.md"))) { throw "点名 codex 却没写" }
+          if (Test-Path (Join-Path $t ".dsh/AGENTS.md")) { throw "点名 codex 却动了 dsh" }
+          & ./install.ps1 -Root $t -Only codex -Uninstall | Out-Null
+          if (Test-Path (Join-Path $t ".codex/AGENTS.md")) { throw "按 agent 卸载没生效" }
+          & ./install.ps1 -Root $t -Only trae -DryRun | Out-Null   # 不存在的宿主：-DryRun 不该落盘
+          if (Test-Path (Join-Path $t ".trae")) { throw "-DryRun 竟然写了文件" }
+          "per-agent self-test ok"
+
+      - name: 安装脚本自测（项目级：写入 + frontmatter + 幂等 + 卸载干净）
         shell: pwsh
         run: |
           $p = Join-Path ([IO.Path]::GetTempPath()) ("aiwp-" + [guid]::NewGuid().ToString("N"))
           New-Item -ItemType Directory -Force -Path $p | Out-Null
           & ./install.ps1 -Project $p | Out-Null
-          foreach ($rel in @("AGENTS.md", ".trae/rules/project_rules.md", ".cursor/rules/ai-work-doctor.mdc")) {
+          foreach ($rel in @(
+            "AGENTS.md", "CODEBUDDY.md", "CONVENTIONS.md",
+            ".trae/rules/ai-work-doctor.md", ".cursor/rules/ai-work-doctor.mdc",
+            ".comate/rules/ai-work-doctor.mdr", ".codebuddy/rules/ai-work-doctor/RULE.mdc",
+            ".lingma/rules/ai-work-doctor.md", ".qoder/rules/ai-work-doctor.md",
+            ".github/instructions/ai-work-doctor.instructions.md")) {
             if (-not (Test-Path (Join-Path $p $rel))) { throw "项目级没写入 $rel" }
           }
           $mdc = Get-Content (Join-Path $p ".cursor/rules/ai-work-doctor.mdc") -Raw
           if (-not $mdc.StartsWith("---")) { throw ".mdc 缺 frontmatter，Cursor 不会加载" }
-          if (Test-Path (Join-Path $p ".lingma")) { throw "写了未证实的项目路径（应加 -All 才写）" }
+          $lingma = Get-Content (Join-Path $p ".lingma/rules/ai-work-doctor.md") -Raw
+          if ($lingma -notmatch 'trigger:\s*always_on') { throw "Qoder CN IDE 规则缺 trigger: always_on" }
           $h = (Get-FileHash (Join-Path $p "AGENTS.md")).Hash
           & ./install.ps1 -Project $p | Out-Null
           if ((Get-FileHash (Join-Path $p "AGENTS.md")).Hash -ne $h) { throw "项目级非幂等" }
