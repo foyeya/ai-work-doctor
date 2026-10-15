@@ -11,6 +11,7 @@
 一条命令装完，**以后所有对话、所有项目、换任何模型都自动生效**——不需要每次 `/skill`。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI](https://github.com/foyeya/ai-work-doctor/actions/workflows/validate.yml/badge.svg)](https://github.com/foyeya/ai-work-doctor/actions/workflows/validate.yml)
 ![Agents](https://img.shields.io/badge/agents-20%20个桌面端%20agent-blue)
 ![Chinese](https://img.shields.io/badge/国产-Trae%20%7C%20CodeBuddy%20%7C%20Comate%20%7C%20Qoder%20%7C%20Kimi-important)
 ![Tasks](https://img.shields.io/badge/tasks-中文%20%7C%20English%20%7C%20mixed-green)
