@@ -31,7 +31,7 @@ jobs:
           grep -q 'AIW_CORE:END' SKILL.md
           core=$(sed -n '/AIW_CORE:START/,/AIW_CORE:END/p' SKILL.md | wc -l)
           echo "常驻卡行数：$core"
-          [ "$core" -le 30 ] || { echo "::error::常驻卡超过 30 行硬顶（含 2 行标记），请先合并或删掉等量内容"; exit 1; }
+          [ "$core" -le 16 ] || { echo "::error::常驻卡超过 16 行硬顶（12 内容行 + 2 标记 + 2 标题，v2.5.0 反变笨瘦身）"; exit 1; }
           # 关键闸门不许被删（R0 输入闸门 / 成本上限 / 单条命令 20 秒）—— 都是按真实事故加的
           grep -q '第 0 条' SKILL.md || { echo "::error::常驻卡缺 R0 输入闸门（一句话：没有对象+动作时先问，禁止先搜索）"; exit 1; }
           grep -q '20 秒' SKILL.md || { echo "::error::缺单条命令 20 秒成本上限"; exit 1; }
@@ -39,11 +39,11 @@ jobs:
           grep -q '输入闸门' SKILL.md || { echo "::error::正文缺 R0 输入闸门章节"; exit 1; }
           # v2.4.0 的智商层三条闸门 + 两条既有行增强，同样不许被静默删掉
           grep -q 'REANCHOR' SKILL.md || { echo "::error::缺 R15 压缩/接管后重锚（REANCHOR）"; exit 1; }
-          grep -q 'DONE m/N' SKILL.md || { echo "::error::缺 R16 交付对账（DONE m/N）"; exit 1; }
-          grep -q 'EXPECT:' SKILL.md || { echo "::error::缺 R8 动手必有预期（EXPECT:）"; exit 1; }
-          grep -q '交付即成品' SKILL.md || { echo "::error::缺 R17 交付即成品"; exit 1; }
-          grep -q '语言锁' SKILL.md || { echo "::error::缺 R17 语言锁"; exit 1; }
-          grep -q 'STALL at N' SKILL.md || { echo "::error::缺 R4 纯推理空转熔断（STALL at N）"; exit 1; }
+grep -q 'UNVERIFIED' SKILL.md || { echo "::error::缺 R16 交付对账（UNVERIFIED 如实标注）"; exit 1; }
+grep -q '最小可验证切片' SKILL.md || { echo "::error::缺 R8 想清才动手（最小可验证切片）"; exit 1; }
+grep -q '交付即产物' SKILL.md || { echo "::error::缺 R17 交付即产物"; exit 1; }
+grep -q '构建/安装类命令例外' SKILL.md || { echo "::error::缺 20 秒的构建安装例外（npm install 被掐事故）"; exit 1; }
+grep -q '空转' SKILL.md || { echo "::error::缺 R4 空转熔断"; exit 1; }
           for f in references/iq-reasoning.md references/iq-nolazy.md references/iq-ledger.md references/iq-taste.md references/iq-models-cn.md references/iq-models-intl.md; do
             [ -s "$f" ] || { echo "::error::按需层文档缺失或为空：$f"; exit 1; }
           done
@@ -156,6 +156,8 @@ jobs:
           if ($a -notmatch 'SELFTEST: PASS') { throw 'card-audit self-test failed: the judge itself is not trustworthy' }
           $b = & ./eval/scan.ps1 -SelfTest 6>&1 | Out-String
           if ($b -notmatch 'SELFTEST: PASS') { throw 'scan self-test failed: the judge itself is not trustworthy' }
+          $f = & ./eval/friction.ps1 -SelfTest 6>&1 | Out-String
+          if ($f -notmatch 'SELFTEST: PASS') { throw 'friction self-test failed: the judge itself is not trustworthy' }
           $d = & ./eval/card-audit.ps1 6>&1 | Out-String
           if ($d -notmatch 'ERRORS: 0') { throw 'card audit reported errors (missing caps / over 30 lines / code block inside card)' }
           "judges self-test + card audit ok"

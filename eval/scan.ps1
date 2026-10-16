@@ -71,7 +71,7 @@ function Test-Transcript {
         HardFail = @($hits | Where-Object { $_.严重度 -eq '硬失败' })
         Soft = @($hits | Where-Object { $_.严重度 -ne '硬失败' })
         Receipts = @($rc); Slop = $slopHits; Emoji = $emoji; Stub = $stub; NoStub = $nostub
-        Lines = $lines.Count; HasEvidence = $hasEvidence; HasImpact = $hasImpact
+          Lines = $lines.Count; HasImpact = $hasImpact
     }
 }
 
@@ -114,7 +114,7 @@ if ($Path) {
 if (-not $Text) { Write-Host '用法：-Path <转录文件> 或 -Text "<文本>" 或 -SelfTest' -ForegroundColor Yellow; exit 1 }
 
 $r = Test-Transcript $Text
-Write-Host ("`n会话转录判分：{0} 行   有证据={1}   有 IMPACT 闸门={2}" -f $r.Lines, $r.HasEvidence, $r.HasImpact) -ForegroundColor Cyan
+    Write-Host ("`n会话转录判分：{0} 行   有 IMPACT 闸门={1}" -f $r.Lines, $r.HasImpact) -ForegroundColor Cyan
 if ($r.HardFail.Count -eq 0) {
     Write-Host '  硬失败：0 ✓' -ForegroundColor Green
 } else {

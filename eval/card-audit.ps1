@@ -65,7 +65,7 @@ if ($SelfTest) {
     $good = @(
         '<!-- AIW_CORE:START -->',
         '1. **空转熔断**：连续 2 个工具调用没有新信息 → 打印 `LOOP at N: <动作> x2` 并换维度。',
-        '2. **交付对账**：用户列了 N 条就回抄 N 条，收工首行打 `DONE m/N`；未做的逐条写原因，UNVERIFIED ≤ 总数 1/3。',
+        '2. **交付对账**：说"完成"必须贴本会话真实命令与原样输出；用户列了 N 条就逐条回抄 N 条；新增行里 TODO 须 0 命中。',
         '<!-- AIW_CORE:END -->'
     ) -join "`n"
     $rb = Test-Card (Get-Card $bad) -MinRules 2
