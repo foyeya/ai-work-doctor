@@ -39,11 +39,11 @@ jobs:
           grep -q '输入闸门' SKILL.md || { echo "::error::正文缺 R0 输入闸门章节"; exit 1; }
           # v2.4.0 的智商层三条闸门 + 两条既有行增强，同样不许被静默删掉
           grep -q 'REANCHOR' SKILL.md || { echo "::error::缺 R15 压缩/接管后重锚（REANCHOR）"; exit 1; }
-grep -q 'UNVERIFIED' SKILL.md || { echo "::error::缺 R16 交付对账（UNVERIFIED 如实标注）"; exit 1; }
-grep -q '最小可验证切片' SKILL.md || { echo "::error::缺 R8 想清才动手（最小可验证切片）"; exit 1; }
-grep -q '交付即产物' SKILL.md || { echo "::error::缺 R17 交付即产物"; exit 1; }
-grep -q '构建/安装类命令例外' SKILL.md || { echo "::error::缺 20 秒的构建安装例外（npm install 被掐事故）"; exit 1; }
-grep -q '空转' SKILL.md || { echo "::error::缺 R4 空转熔断"; exit 1; }
+            grep -q 'UNVERIFIED' SKILL.md || { echo "::error::缺 R16 交付对账（UNVERIFIED 如实标注）"; exit 1; }
+            grep -q '最小可验证切片' SKILL.md || { echo "::error::缺 R8 想清才动手（最小可验证切片）"; exit 1; }
+            grep -q '交付即产物' SKILL.md || { echo "::error::缺 R17 交付即产物"; exit 1; }
+            grep -q '构建/安装类命令例外' SKILL.md || { echo "::error::缺 20 秒的构建安装例外（npm install 被掐事故）"; exit 1; }
+            grep -q '空转' SKILL.md || { echo "::error::缺 R4 空转熔断"; exit 1; }
           for f in references/iq-reasoning.md references/iq-nolazy.md references/iq-ledger.md references/iq-taste.md references/iq-models-cn.md references/iq-models-intl.md; do
             [ -s "$f" ] || { echo "::error::按需层文档缺失或为空：$f"; exit 1; }
           done
