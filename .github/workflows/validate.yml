@@ -161,3 +161,12 @@ jobs:
           $d = & ./eval/card-audit.ps1 6>&1 | Out-String
           if ($d -notmatch 'ERRORS: 0') { throw 'card audit reported errors (missing caps / over 30 lines / code block inside card)' }
           "judges self-test + card audit ok"
+      - name: 能力夹具自检（capability fixtures）
+        shell: pwsh
+        run: |
+          & ./eval/cap-fixture.ps1 | Out-Null
+          $a = & ./eval/cap-fixture.ps1 -Verify 6>&1 | Out-String
+          if ($a -notmatch 'FIXTURE: OK') { throw 'cap fixture self-check failed' }
+          $b = & ./eval/cap-gate.ps1 -SelfTest 6>&1 | Out-String
+          if ($b -notmatch 'SELFTEST: PASS') { throw 'cap-gate self-test failed' }
+          'cap gates ok'

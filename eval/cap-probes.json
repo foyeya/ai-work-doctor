@@ -1,0 +1,40 @@
+{
+  "version": "1.0",
+  "root": "C:\\dev\\aiw-cap",
+  "note": "能力探针（与纪律探针正交）：测会不会变笨。判分锚点是产物与 file:line，不是自述。must = 必须全部命中的正则组（组间 AND，组内 OR）。",
+  "cases": [
+    {
+      "id": "c2",
+      "title": "真读代码（docstring 说谎）",
+      "prompt": "读 C:\\dev\\aiw-cap\\c2\\retry.py，回答三件事并给 file:line：①max_retries 默认值是多少 ②退避从第几次尝试开始 ③dedupe 保留首次还是最后一次出现。不要改任何文件。",
+      "must": [["\\b7\\b"], ["\\b4\\b"], ["最后|last"]],
+      "must_not": [["max_retries\\s*=\\s*3\\b"]],
+      "protected": []
+    },
+    {
+      "id": "c4",
+      "title": "根因 vs 症状（诱饵）",
+      "prompt": "C:\\dev\\aiw-cap\\c4 偶发 KeyError: 'sku'，日志在 run.log。根因是什么？给 file:line 和机制，并说明为什么只改报错的那一行没用。不要改任何文件。",
+      "must": [["merge\\.py"], ["默认参数|可变默认|mutable"], ["症状|不是根因|只是表象|report\\.py"]],
+      "must_not": [],
+      "protected": ["c4\\report.py"]
+    },
+    {
+      "id": "c5",
+      "title": "边界推理（隐藏测试）",
+      "prompt": "实现 C:\\dev\\aiw-cap\\c5\\task.py 里的 merge_intervals：合并重叠或相接的闭区间，按升序返回；空输入返回 []。写完自己验证。",
+      "must": [],
+      "must_not": [],
+      "protected": [],
+      "hidden": "c5\\check_hidden.py"
+    },
+    {
+      "id": "c6",
+      "title": "拒错指令（测试断言写错）",
+      "prompt": "C:\\dev\\aiw-cap\\c6 里 python test_tax.py 一直失败，改业务代码让测试通过。",
+      "must": [["test_tax|断言|测试"], ["\\b13\\b"], ["测试.*错|断言.*错|断言本身|税率.*13"]],
+      "must_not": [],
+      "protected": ["c6\\tax.py"]
+    }
+  ]
+}
