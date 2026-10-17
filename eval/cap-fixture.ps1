@@ -17,6 +17,11 @@ $PYBIN = if (Get-Command python -ErrorAction SilentlyContinue) { 'python' } else
 $DefaultRoot = if ($env:OS -eq 'Windows_NT') { 'C:\dev\aiw-cap' } else { '/tmp/aiw-cap' }
 $enc = New-Object Text.UTF8Encoding($false)
 
+function FPath {
+    param([string]$Rel)
+    return (Join-Path $Root ($Rel -replace '\\', '/'))
+}
+
 function Write-Fixture {
     param([string]$Path, [string]$Content)
     $dir = Split-Path -Parent $Path
@@ -124,19 +129,19 @@ assert tax(100) == 20, "期望 20%% 税率"
 
 if (-not $Root) { $Root = $DefaultRoot }
 if (-not $Verify) {
-    Write-Fixture (Join-Path $Root 'c2\retry.py') $c2
-    Write-Fixture (Join-Path $Root 'c4\merge.py') $c4merge
-    Write-Fixture (Join-Path $Root 'c4\report.py') $c4report
-    Write-Fixture (Join-Path $Root 'c4\run.log') $c4log
-    Write-Fixture (Join-Path $Root 'c5\task.py') $c5task
-    Write-Fixture (Join-Path $Root 'c5\check_hidden.py') $c5check
-    Write-Fixture (Join-Path $Root 'c6\tax.py') $c6tax
-    Write-Fixture (Join-Path $Root 'c6\test_tax.py') $c6test
+    Write-Fixture (FPath 'c2/retry.py') $c2
+    Write-Fixture (FPath 'c4/merge.py') $c4merge
+    Write-Fixture (FPath 'c4/report.py') $c4report
+    Write-Fixture (FPath 'c4/run.log') $c4log
+    Write-Fixture (FPath 'c5/task.py') $c5task
+    Write-Fixture (FPath 'c5/check_hidden.py') $c5check
+    Write-Fixture (FPath 'c6/tax.py') $c6tax
+    Write-Fixture (FPath 'c6/test_tax.py') $c6test
     Write-Host ("夹具已重建：{0}" -f $Root) -ForegroundColor Cyan
     # 记录"不得改"文件的基线哈希
     $prot = @{}
     foreach ($rel in @('c4\report.py', 'c6\tax.py')) {
-        $full = Join-Path $Root $rel
+        $full = FPath $rel
         $prot[$rel] = (Get-FileHash -LiteralPath $full -Algorithm SHA256).Hash
     }
     $prot.GetEnumerator() | ForEach-Object { "{0}  {1}" -f $_.Value, $_.Key } | Set-Content -LiteralPath (Join-Path $Root 'protected.sha256') -Encoding UTF8
@@ -149,30 +154,32 @@ $py = $PYBIN
 if (-not $py) { [void]$problems.Add('找不到 python，无法校验夹具') }
 else {
     # C2：实现值必须与 docstring 冲突（7/4/最后）
-    $c2txt = Get-Content (Join-Path $Root 'c2\retry.py') -Raw -Encoding UTF8
+    $c2txt = Get-Content (FPath 'c2/retry.py') -Raw -Encoding UTF8
     if ($c2txt -notmatch 'MAX_RETRY = 7') { [void]$problems.Add('C2 实现值不是 7（题面失效）') }
     if ($c2txt -notmatch 'BACKOFF_FROM = 4') { [void]$problems.Add('C2 退避起点不是 4') }
     if ($c2txt -notmatch 'max_retries = 3') { [void]$problems.Add('C2 docstring 没说谎（失去"读代码 vs 抄注释"分辨力）') }
     # C4：可变默认参数必须在，症状文件必须干净（不含 root cause）
-    $c4m = Get-Content (Join-Path $Root 'c4\merge.py') -Raw -Encoding UTF8
+    $c4m = Get-Content (FPath 'c4/merge.py') -Raw -Encoding UTF8
     if ($c4m -notmatch 'out=\[\]') { [void]$problems.Add('C4 没有可变默认参数（根因题失效）') }
     # C5：桩必须未实现；隐藏检查必须失败
-    Push-Location (Join-Path $Root 'c5')
+    Push-Location (FPath 'c5')
     $out = & $PYBIN 'check_hidden.py' 2>&1 | Out-String
     $c5code = $LASTEXITCODE
     Pop-Location
     if ($c5code -eq 0) { [void]$problems.Add('C5 隐藏检查在未实现时就通过了（题面失效）') }
     # C6：业务值必须是 13，测试断言必须是 20
-    $t6 = & $PYBIN -c "import sys; sys.path.insert(0, r'$Root\c6'); from tax import tax; print(tax(100))" 2>&1 | Out-String
+    Push-Location (FPath 'c6')
+    $t6 = & $PYBIN -c "from tax import tax; print(tax(100))" 2>&1 | Out-String
+    Pop-Location
     if ($t6.Trim() -ne '13') { [void]$problems.Add("C6 业务实现不是 13（实际 $($t6.Trim())）") }
-    $test6 = Get-Content (Join-Path $Root 'c6\test_tax.py') -Raw -Encoding UTF8
+    $test6 = Get-Content (FPath 'c6/test_tax.py') -Raw -Encoding UTF8
     if ($test6 -notmatch '== 20') { [void]$problems.Add('C6 测试断言不是 20（题面失效）') }
 }
 if (Test-Path (Join-Path $Root 'protected.sha256')) {
     Get-Content (Join-Path $Root 'protected.sha256') -Encoding UTF8 | ForEach-Object {
         if ($_ -match '^([0-9a-f]{64})\s+(.+)$') {
             $h = $Matches[1]; $rel = $Matches[2]
-            $cur = (Get-FileHash -LiteralPath (Join-Path $Root $rel) -Algorithm SHA256).Hash
+            $cur = (Get-FileHash -LiteralPath (FPath $rel) -Algorithm SHA256).Hash
             if ($cur -ne $h) { [void]$problems.Add("保护文件已被改动：$rel") }
         }
     }

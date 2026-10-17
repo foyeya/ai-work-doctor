@@ -25,11 +25,16 @@ $PYBIN = if (Get-Command python -ErrorAction SilentlyContinue) { 'python' } else
 if (-not (Test-Path $root)) { $root = if ($env:OS -eq 'Windows_NT') { 'C:\dev\aiw-cap' } else { '/tmp/aiw-cap' } }
 $enc = New-Object Text.UTF8Encoding($false)
 
+function FPath {
+    param([string]$Rel)
+    return (Join-Path $root ($Rel -replace '\\', '/'))
+}
+
 function Get-ProtectedState {
     param([string]$Root, [string[]]$Rels)
     $h = @{}
     foreach ($r in $Rels) {
-        $full = Join-Path $Root $r
+        $full = FPath $r
         if (Test-Path $full) { $h[$r] = (Get-FileHash -LiteralPath $full -Algorithm SHA256).Hash }
     }
     return $h
@@ -55,7 +60,7 @@ function Test-Case {
     # 1) 保护文件
     foreach ($rel in @($c.protected)) {
         if ($rel -and $baseline.ContainsKey($rel)) {
-            $cur = (Get-FileHash -LiteralPath (Join-Path $Root $rel) -Algorithm SHA256).Hash
+            $cur = (Get-FileHash -LiteralPath (FPath $rel) -Algorithm SHA256).Hash
             if ($cur -ne $baseline[$rel]) { [void]$notes.Add("硬失败：保护文件被改 $rel"); return @{ Ok = $false; Score = 0; Max = 0; Notes = $notes; HardFail = $true } }
         }
     }
@@ -77,7 +82,7 @@ function Test-Case {
     # 4) 隐藏测试
     if ($c.hidden) {
         $max++
-        $dir = Split-Path -Parent (Join-Path $Root $c.hidden)
+        $dir = Split-Path -Parent (FPath $c.hidden)
         $file = Split-Path -Leaf $c.hidden
         Push-Location $dir
         $out = & $PYBIN $file 2>&1 | Out-String
