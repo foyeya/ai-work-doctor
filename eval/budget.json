@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "note": "准入预算：加规则不是免费的。任何新增或加长必须落在这几个硬顶里，否则 card-audit 直接红。这是『成功率优先，但不能拿 token 换歪』的机械表达。",
+  "card_chars_max": 1760,
+  "card_tokens_max": 1100,
+  "rules_max": 12,
+  "rules_min": 10,
+  "release_delta_chars_max": 60,
+  "evidence_sessions_min": 2,
+  "stale_days": 14,
+  "rationale": {
+    "card_chars_max": "1760 字符 ≈ 1100 tokens。当前 1690 字符 ≈ 1056 tokens，只剩约 70 字符余量——想加新规则，先合并或删掉一条旧的。",
+    "rules_max": "12 条是硬顶：再多就违背『卡越长、强模型越容易被干扰』的实测结论（v2.4 的 2229 tokens 卡让模型变笨）。",
+    "release_delta_chars_max": "单次发版卡长增幅 ≤60 字符（≈37 tokens），避免一次改动吃掉全部余量。",
+    "evidence_sessions_min": "一条规则至少要 2 个会话命中同样的失败才算普遍问题；1 次事故只记事故，不改卡。",
+    "stale_days": "蒸馏采样默认只看最近 14 天；超过就重新采样，老的失败模式若不复现，规则应撤掉而不是留着。"
+  }
+}

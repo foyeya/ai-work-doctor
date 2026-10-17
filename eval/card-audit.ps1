@@ -22,7 +22,7 @@ function Get-Card {
 }
 
 function Test-Card {
-    param([string]$card, [int]$MinRules = 10, [switch]$SkipClauses)
+    param([string]$card, [int]$MinRules = 10, [int]$MaxRules = 12, [switch]$SkipClauses)
     $errors = New-Object System.Collections.ArrayList
     $warns = New-Object System.Collections.ArrayList
     $rawLines = @($card -split "`r?`n")
@@ -34,6 +34,19 @@ function Test-Card {
     if ($blockLines -gt 16) { [void]$errors.Add("标记块 $blockLines 行 > 16 行硬顶（与 CI 同口径）") }
     if ($ruleLines.Count -lt $MinRules) { [void]$errors.Add("编号规则只有 $($ruleLines.Count) 条（期望 ≥$MinRules），疑似被截断") }
     if ($card -match '(?m)^\s*```') { [void]$errors.Add('卡内出现代码块（CONTRIBUTING 第 2 条禁止）') }
+
+    # 预算闸门：成功率优先，但不能拿 token 换歪（阈值见 eval/budget.json）
+    $budgetFile = Join-Path $PSScriptRoot 'budget.json'
+    if (Test-Path -LiteralPath $budgetFile) {
+        $b = Get-Content -LiteralPath $budgetFile -Raw -Encoding UTF8 | ConvertFrom-Json
+        $tok = [int]($card.Length / 1.6)
+        if ($b.card_chars_max -and $card.Length -gt [int]$b.card_chars_max) {
+            [void]$errors.Add(("卡超预算：{0} 字符 > 硬顶 {1}（≈{2} tokens > {3}）——想加规则先合并或删一条" -f $card.Length, $b.card_chars_max, $tok, $b.card_tokens_max))
+        }
+        if ($b.rules_max -and $ruleLines.Count -gt [int]$b.rules_max) {
+            [void]$errors.Add(("编号规则 {0} 条 > 硬顶 {1} 条——卡越长强模型越容易被干扰" -f $ruleLines.Count, $b.rules_max))
+        }
+    }
 
     $detail = foreach ($ln in $ruleLines) {
         $no = [regex]::Match($ln, '^\s*(\d+)\.').Groups[1].Value
@@ -80,8 +93,8 @@ if ($SelfTest) {
         '2. **交付对账**：说"完成"必须贴本会话真实命令与原样输出；用户列了 N 条就逐条回抄 N 条；新增行里 TODO 须 0 命中。',
         '<!-- AIW_CORE:END -->'
     ) -join "`n"
-    $rb = Test-Card (Get-Card $bad) -MinRules 2 -SkipClauses
-    $rg = Test-Card (Get-Card $good) -MinRules 2 -SkipClauses
+    $rb = Test-Card (Get-Card $bad) -MinRules 2 -MaxRules 99 -SkipClauses
+    $rg = Test-Card (Get-Card $good) -MinRules 2 -MaxRules 99 -SkipClauses
     "  坏样本：ERROR $($rb.Errors.Count)（期望 2）· WARN $($rb.Warns.Count)"
     $rb.Errors | ForEach-Object { "    ERROR - $_" }
     "  好样本：ERROR $($rg.Errors.Count)（期望 0）· WARN $($rg.Warns.Count)（期望 0）"
