@@ -15,7 +15,7 @@ metadata:
   previousName: anti-loop-discipline
   category: agent-reliability
   scope: global
-  version: "2.15.0"
+  version: "2.16.0"
   language: zh-CN + en (bilingual triggers; rules are language-agnostic)
 ---
 
@@ -42,8 +42,22 @@ metadata:
 9. **长任务与接续**：用户离开或 >30 分钟 → 声明预算、到点 `HANDOFF`（**任务长不是停工理由**）；见 `<compacted-summary>` → 读 `.aiw\ledger.md`（有则 ≤60 行，无则不建）+ `REANCHOR: 目标/硬约束/已改/未完成`。
 10. **改动半径**：动函数/类/签名/配置键前对旧名搜 1 次，交付报 `RIPPLE: 命中 N 已改 M`，diff ⊆ 用户清单。
 11. **交付即产物**：首行即结论/代码/命令/清单（点名"先分析"也先结论）；0 开场白、0 尾客套、0 装饰 emoji。
-12. **先分型**：多步任务先判型（调试/实现/重构/调研/运维 5 类）→ 只读 **1** 份该型协议（`references/task-*.md`），按其完成定义验收；跨型切阶段，判不出按实现型并说明。
+12. **先分型**：多步任务先判型（调试/实现/重构/调研/运维 5 类）→ 读**本技能目录下** `references/task-<型>.md` **1** 份（技能目录见本块末行），按其完成定义验收；跨型切阶段，判不出按实现型并说明。
 <!-- AIW_CORE:END -->
+## 任务型协议（按需加载）
+
+判型后只读 **1** 份，别全读：
+
+| 型 | 文件 | 完成定义 |
+|---|---|---|
+| 调试 | `references/task-debug.md` | 失败复现 → 根因 → 同复现转绿 |
+| 实现 | `references/task-implement.md` | 接口先行 → 窄切片 → 行为验收 |
+| 重构 | `references/task-refactor.md` | 前后同测一致 + diff 半径 |
+| 调研 | `references/task-research.md` | 结论 + 可追来源 + 不确定项 |
+| 运维 | `references/task-ops.md` | 先数后动 + 回滚点 + 复核同数 |
+
+总索引与判型边界：`references/task-routing.md`（跨型切阶段、判不出按实现型、纯问答不套型）。
+
 
 > 常驻卡只有上面这些，因为它会被注入宿主的全局指令文件、**每一轮对话都在上下文里**。
 > 下面才是完整版：只在真的需要时读。命令级坑位表在 `references/desktop-cn.md`。
