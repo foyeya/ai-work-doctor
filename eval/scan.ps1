@@ -57,7 +57,7 @@ function Test-Transcript {
             [void]$hits.Add([pscustomobject]@{ 编号 = $r.id; 类型 = $r.name; 严重度 = $sev; 行 = $lineNo; 摘录 = ($m.Value.Trim() -replace '\s+', ' ').Substring(0, [Math]::Min(70, ($m.Value.Trim() -replace '\s+', ' ').Length)) })
         }
     }
-    $receipts = 'REANCHOR:', 'DONE \d+/\d+', 'DONE m/N', 'EXPECT:', 'WHY:', 'NOSTUB:', 'UNVERIFIED:', 'LOOP at N', 'STALL at N', 'BUDGET:', 'IMPACT:', 'CHECKPOINT:', 'BLOCKED:', 'HANDOFF'
+    $receipts = 'REANCHOR:', 'DONE \d+/\d+', 'DONE m/N', 'EXPECT:', 'WHY:', 'NOSTUB:', 'UNVERIFIED:', 'LOOP at N', 'STALL at N', 'BUDGET:', 'IMPACT:', 'BLOCKED:', 'HANDOFF'
     $rc = foreach ($x in $receipts) {
         $n = ([regex]::Matches($body, $x)).Count
         if ($n -gt 0) { [pscustomobject]@{ 回执 = $x; 次数 = $n } }

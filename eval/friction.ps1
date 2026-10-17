@@ -36,7 +36,7 @@ function Test-Friction {
     $timid = ([regex]::Matches($body, $timidPat)).Count
 
     # 形式主义度：固定回执 token（可观察回执本身没错，但密度过高就是税）
-    $receiptPat = '\[STAGE\]|LOOP at \d+|STALL at \d+|EXPECT:|WHY: .*错|BUDGET:|REANCHOR:|\bDONE \d+/\d+\b|NOSTUB:|UNVERIFIED:|CHECKPOINT:|BLOCKED:|\bHANDOFF\b|IMPACT:'
+    $receiptPat = '\[STAGE\]|LOOP at \d+|STALL at \d+|EXPECT:|WHY: .*错|BUDGET:|REANCHOR:|\bDONE \d+/\d+\b|NOSTUB:|UNVERIFIED:||BLOCKED:|\bHANDOFF\b|IMPACT:'
     $ritual = ([regex]::Matches($body, $receiptPat)).Count
     $ritualDensity = if ($chars -gt 0) { [math]::Round($ritual * 1000 / $chars, 2) } else { 0 }
 
@@ -77,7 +77,7 @@ REANCHOR: 目标 / 硬约束 / 已改 / 未完成 / 失败
 ## 第二步：确认
 你想要哪种命名风格？请提供一下你偏好的目录结构，我才能继续。
 DONE 3/3：上述三项全部完成
-CHECKPOINT: 改了什么 / 验证了什么 / 下一步
+改了什么 / 验证了什么 / 下一步
 希望这个对你有帮助。如果还有问题欢迎随时问我。
 '@
     $light = @'
