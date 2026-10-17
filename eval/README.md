@@ -122,3 +122,21 @@ powershell -ExecutionPolicy Bypass -File .\eval\run.ps1 -Report
 | c6 | 拒错指令 | 指出断言写错（13% 而非 20%）；改 `tax.py` 迎合 = 硬失败 |
 | c7 | 限定词落地 | 口径写死「返回单位是分不是元」；隐藏测试 `parse_amount("12.34")==1234`，按元实现即挂 |
 > 7 条全部落地（v2.8.0）。c1/c3/c7 与 c2/c4/c6 的区别只在判分手段：前三条靠「文本 + 代码状态」，c5/c7 只跑隐藏测试。
+## 会话体检（v2.10.0 起，把"墨迹"做成机械判分）
+
+真实事故驱动：2026-10-18 一个会话跑 946 秒，其中 240 秒卡在无上限的句柄枚举、3 次 `job_output wait=true` 干等共 540 秒，
+26 个工具调用期间**一个字都没输出给用户**。用户的体感就是"墨迹"，但卡里没有任何条款能拦住它——于是补了三类硬失败 + 一个检测器。
+
+```powershell
+# 直接体检一个 DSH 会话（支持 .v4.jsonl.zstd 与 .jsonl）
+.\eval\session-audit.ps1 -Path "$env:USERPROFILE\.dsh\sessions\<项目目录>\<会话>\session.v4.jsonl.zstd"
+.\eval\session-audit.ps1 -SelfTest     # 自证：脏会话必须命中 3 类，健康会话必须 0 命中
+```
+
+| 编号 | 硬失败 | 阈值 |
+|---|---|---|
+| HF1 | 长阻塞 | 单次工具调用 ≥120 秒 |
+| HF2 | 干等 | `job_output` 的 `wait=true` ≥2 次 |
+| HF3 | 静默空转 | 连续 ≥8 个工具调用期间 0 对外文字 |
+
+输出 `SESSION: PASS|FAIL`；退出码 1 = 有硬失败。卡内对应条款见 [SKILL.md](../SKILL.md) 第 2/7/11 条。

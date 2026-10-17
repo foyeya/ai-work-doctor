@@ -42,7 +42,9 @@ jobs:
             grep -q 'UNVERIFIED' SKILL.md || { echo "::error::缺 R16 交付对账（UNVERIFIED 如实标注）"; exit 1; }
             grep -q '最小可验证切片' SKILL.md || { echo "::error::缺 R8 想清才动手（最小可验证切片）"; exit 1; }
             grep -q '交付即产物' SKILL.md || { echo "::error::缺 R17 交付即产物"; exit 1; }
-            grep -q '构建/安装类命令例外' SKILL.md || { echo "::error::缺 20 秒的构建安装例外（npm install 被掐事故）"; exit 1; }
+            grep -q '扫描/枚举/全盘/句柄类硬上限 20 秒' SKILL.md || { echo "::error::缺扫描/枚举类 20 秒硬上限（v2.10.0 句柄枚举 240 秒事故）"; exit 1; }
+            grep -q '`wait=true` 只准等 1 次' SKILL.md || { echo "::error::缺后台 Job 单次等待上限（v2.10.0 两次 wait 干等前事故）"; exit 1; }
+            grep -q '连续 5 步没有对外文字' SKILL.md || { echo "::error::缺静默上限（v2.10.0 16 步 0 输出事故）"; exit 1; }
             grep -q '空转' SKILL.md || { echo "::error::缺 R4 空转熔断"; exit 1; }
           for f in references/iq-reasoning.md references/iq-nolazy.md references/iq-ledger.md references/iq-taste.md references/iq-models-cn.md references/iq-models-intl.md; do
             [ -s "$f" ] || { echo "::error::按需层文档缺失或为空：$f"; exit 1; }
@@ -170,3 +172,9 @@ jobs:
           $b = & ./eval/cap-gate.ps1 -SelfTest 6>&1 | Out-String
           if ($b -notmatch 'SELFTEST: PASS') { throw 'cap-gate self-test failed' }
           'cap gates ok'
+      - name: 会话体检器自测（session-audit）
+        shell: pwsh
+        run: |
+          $o = & ./eval/session-audit.ps1 -SelfTest 6>&1 | Out-String
+          if ($o -notmatch 'SELFTEST: PASS') { throw 'session-audit self-test failed' }
+          'session audit ok'
