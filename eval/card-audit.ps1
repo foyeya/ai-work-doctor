@@ -1,7 +1,7 @@
 ﻿# ai工作医生 · 常驻卡机械审计
 #
 # 作用：把「反膨胀」里能机械判定的部分自动化。
-#   ERROR（会让 CI 红）：整卡超过 30 行（含 2 行标记）· 卡内出现代码块 · 编号规则没有数字上限 · 编号规则条数异常
+#   ERROR（会让 CI 红）：整卡超过 16 行（含 2 行标记，与 CI 同口径）· 卡内出现代码块 · 编号规则没有数字上限 · 编号规则条数异常
 #   WARN （只提示）    ：编号规则没有「机械可读回执」——有些规则靠散文描述证据，这不算错，但值得盯
 # 用法：
 #   powershell -ExecutionPolicy Bypass -File .\eval\card-audit.ps1
@@ -22,7 +22,7 @@ function Get-Card {
 }
 
 function Test-Card {
-    param([string]$card, [int]$MinRules = 10)
+    param([string]$card, [int]$MinRules = 10, [switch]$SkipClauses)
     $errors = New-Object System.Collections.ArrayList
     $warns = New-Object System.Collections.ArrayList
     $rawLines = @($card -split "`r?`n")
@@ -31,7 +31,7 @@ function Test-Card {
 
     # 与 CI 同口径：标记块总行数（含 START/END 两行）
     $blockLines = $rawLines.Count   # 与 CI 的 sed -n '/START/,/END/p' | wc -l 同口径
-    if ($blockLines -gt 30) { [void]$errors.Add("标记块 $blockLines 行 > 30 行硬顶") }
+    if ($blockLines -gt 16) { [void]$errors.Add("标记块 $blockLines 行 > 16 行硬顶（与 CI 同口径）") }
     if ($ruleLines.Count -lt $MinRules) { [void]$errors.Add("编号规则只有 $($ruleLines.Count) 条（期望 ≥$MinRules），疑似被截断") }
     if ($card -match '(?m)^\s*```') { [void]$errors.Add('卡内出现代码块（CONTRIBUTING 第 2 条禁止）') }
 
@@ -51,7 +51,19 @@ function Test-Card {
             字符 = $ln.Length
         }
     }
-    return @{ Errors = $errors; Warns = $warns; Detail = $detail; Lines = $lines.Count; BlockLines = $blockLines; Rules = $ruleLines.Count; Chars = $card.Length }
+    # 语义条款闸门：防止"卡被掏空但结构仍合法"（12 条空话 + 假回执曾骗过本审计 → ERRORS: 0）
+    $clauseHits = 0; $clauseTotal = 0
+    $clauseFile = Join-Path $PSScriptRoot 'card-clauses.json'
+    if ((-not $SkipClauses) -and (Test-Path -LiteralPath $clauseFile)) {
+        $spec = Get-Content -LiteralPath $clauseFile -Raw -Encoding UTF8 | ConvertFrom-Json
+        foreach ($c in $spec.clauses) {
+            $clauseTotal++
+            $hit = $false
+            foreach ($pat in $c.any) { if ($card -match $pat) { $hit = $true; break } }
+            if ($hit) { $clauseHits++ } else { [void]$errors.Add("条款缺失/被掏空：$($c.name)") }
+        }
+    }
+    return @{ Errors = $errors; Warns = $warns; Detail = $detail; Lines = $lines.Count; BlockLines = $blockLines; Rules = $ruleLines.Count; Chars = $card.Length; ClauseHits = $clauseHits; ClauseTotal = $clauseTotal }
 }
 
 if ($SelfTest) {
@@ -68,8 +80,8 @@ if ($SelfTest) {
         '2. **交付对账**：说"完成"必须贴本会话真实命令与原样输出；用户列了 N 条就逐条回抄 N 条；新增行里 TODO 须 0 命中。',
         '<!-- AIW_CORE:END -->'
     ) -join "`n"
-    $rb = Test-Card (Get-Card $bad) -MinRules 2
-    $rg = Test-Card (Get-Card $good) -MinRules 2
+    $rb = Test-Card (Get-Card $bad) -MinRules 2 -SkipClauses
+    $rg = Test-Card (Get-Card $good) -MinRules 2 -SkipClauses
     "  坏样本：ERROR $($rb.Errors.Count)（期望 2）· WARN $($rb.Warns.Count)"
     $rb.Errors | ForEach-Object { "    ERROR - $_" }
     "  好样本：ERROR $($rg.Errors.Count)（期望 0）· WARN $($rg.Warns.Count)（期望 0）"
@@ -90,7 +102,7 @@ if (-not $card) { Write-Host "找不到 AIW_CORE 标记块：$SkillPath" -Foregr
 
 $r = Test-Card $card -MinRules $MinRules
 Write-Host ("`n常驻卡审计：{0}" -f $SkillPath) -ForegroundColor Cyan
-Write-Host ("  标记块 {0} 行（CI 口径，硬顶 30）· 内容 {1} 行 · 编号规则 {2} 条 · 正文字符 {3}（约 {4} tokens/轮）" -f $r.BlockLines, $r.Lines, $r.Rules, $r.Chars, [int]($r.Chars / 1.6))
+Write-Host ("  标记块 {0} 行（CI 口径，硬顶 16）· 内容 {1} 行 · 编号规则 {2} 条 · 正文字符 {3}（约 {4} tokens/轮）· 语义条款 {5}/{6}" -f $r.BlockLines, $r.Lines, $r.Rules, $r.Chars, [int]($r.Chars / 1.6), $r.ClauseHits, $r.ClauseTotal)
 $r.Detail | Format-Table -AutoSize | Out-String -Width 160 | Write-Host
 if ($r.Warns.Count -gt 0) {
     Write-Host ("  WARN {0} 条（不阻塞，但值得补固定回执）：" -f $r.Warns.Count) -ForegroundColor Yellow

@@ -177,7 +177,7 @@ floor, and corrects model-specific habits. The probes measure **behavioural disc
 
 | Layer | Contents | When it enters context |
 |---|---|---|
-| **Always-on card** (injected by the installer) | input gate + 10 numbered rules (v2.5.0 slim-down: 25 to 14 lines, 2229 to 928 tokens/turn) | Every request — which is why it must stay short |
+| **Always-on card** (injected by the installer) | input gate + 10 numbered rules (v2.6.0: 1378 chars ≈ 861 tokens/turn, 61% below v2.4.x) | Every request — which is why it must stay short |
 | **SKILL.md body** | Trigger / action / cap / counter-example per rule, vague-request mapping, boundaries, self-check | Loaded on demand |
 | **`references/iq-*.md`** | reasoning control, anti-laziness, ledger protocol, checkable taste, Chinese & international model tables (6 files, ~200KB) | Only on the matching situation — zero cost by default |
 | **references/desktop-cn.md** | Command-level pitfalls (encoding, paths, ports, mirrors, hanging commands…) | Only when the symptom appears |
@@ -185,7 +185,7 @@ floor, and corrects model-specific habits. The probes measure **behavioural disc
 The installer extracts the card from `SKILL.md` between `AIW_CORE` markers (single source of truth), writes it
 idempotently, previews with `-DryRun` and removes it precisely with `-Uninstall`.
 
-## The 11 rules (v2.5.0 slim-down)
+## The 11 rules (v2.6.0)
 
 | # | Rule | Accident it prevents |
 |---|---|---|

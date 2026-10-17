@@ -45,7 +45,9 @@ function Test-Friction {
     $structDensity = if ($chars -gt 0) { [math]::Round($structEls * 1000 / $chars, 2) } else { 0 }
 
     # 摩擦总分（0-100，越高越"笨重"）：套话与胆小最伤，回执次之，结构税最轻
-    $score = [math]::Min(100, [int]($slop * 12 + $timid * 15 + [math]::Min(30, $ritualDensity * 6) + [math]::Min(20, $structDensity * 1.5)))
+    # 回执惩罚设门槛：≥3 条才开始计（单条合规 IMPACT 不该被判成形式主义）
+    $ritualW = if ($ritual -ge 3) { [math]::Min(30, $ritualDensity * 6) } else { 0 }
+    $score = [math]::Min(100, [int]($slop * 12 + $timid * 15 + $ritualW + [math]::Min(20, $structDensity * 1.5)))
 
     return @{
         Chars = $chars; Tokens = $tokens; Lines = $lines.Count; NonCodeRatio = $nonCodeRatio
@@ -103,6 +105,7 @@ if ($Path) {
 if (-not $Text) { Write-Host '用法：-Path <回复文件> 或 -Text "<文本>" 或 -SelfTest' -ForegroundColor Yellow; exit 1 }
 
 $r = Test-Friction $Text
+Write-Output "CAPABILITY-NOTE: friction measures FORMAT TAX only (slop/timid/receipt/struct). It does NOT measure capability - a deep, cautious answer can score higher than a lazy one. Never use this score alone as an ability gate."
 Write-Output ("FRICTION: " + $r.Score)
 Write-Host ''
 Write-Host '=== 摩擦度报告 ===' -ForegroundColor Cyan
