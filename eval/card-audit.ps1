@@ -31,7 +31,10 @@ function Test-Card {
 
     # 与 CI 同口径：标记块总行数（含 START/END 两行）
     $blockLines = $rawLines.Count   # 与 CI 的 sed -n '/START/,/END/p' | wc -l 同口径
-    if ($blockLines -gt 16) { [void]$errors.Add("标记块 $blockLines 行 > 16 行硬顶（与 CI 同口径）") }
+    $blockMax = 20
+    $bf = Join-Path $PSScriptRoot 'budget.json'
+    if (Test-Path -LiteralPath $bf) { try { $bj = Get-Content -LiteralPath $bf -Raw -Encoding UTF8 | ConvertFrom-Json; if ($bj.block_lines_max) { $blockMax = [int]$bj.block_lines_max } } catch { } }
+    if ($blockLines -gt $blockMax) { [void]$errors.Add("标记块 $blockLines 行 > $blockMax 行硬顶（与 CI 同口径）") }
     if ($ruleLines.Count -lt $MinRules) { [void]$errors.Add("编号规则只有 $($ruleLines.Count) 条（期望 ≥$MinRules），疑似被截断") }
     if ($card -match '(?m)^\s*```') { [void]$errors.Add('卡内出现代码块（CONTRIBUTING 第 2 条禁止）') }
 

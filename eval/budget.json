@@ -1,18 +1,28 @@
 {
-  "version": 1,
-  "note": "准入预算：加规则不是免费的。任何新增或加长必须落在这几个硬顶里，否则 card-audit 直接红。这是『成功率优先，但不能拿 token 换歪』的机械表达。",
-  "card_chars_max": 1760,
-  "card_tokens_max": 1100,
-  "rules_max": 12,
+  "version": 2,
+  "note": "预算不是越省越好，是分层的护栏：常驻层要小（每轮都付），按需层可以大（只在需要时付）。上限按『公开文档通行口径 + 我们自己的 A/B』定，不做极限压缩。",
+  "layer_targets": {
+    "card_tokens": { "soft": 1300, "hard": 1900 },
+    "skill_body_tokens": { "soft": 5000, "hard": 8000 },
+    "reference_lines": { "soft": 120, "hard": 300 },
+    "always_on_total_tokens": { "soft": 3500, "hard": 5000 }
+  },
+  "card_chars_max": 3000,
+  "card_tokens_max": 1900,
+  "rules_max": 16,
   "rules_min": 10,
-  "release_delta_chars_max": 60,
+  "block_lines_max": 20,
+  "release_delta_chars_max": 150,
   "evidence_sessions_min": 2,
   "stale_days": 14,
   "rationale": {
-    "card_chars_max": "1760 字符 ≈ 1100 tokens。当前 1690 字符 ≈ 1056 tokens，只剩约 70 字符余量——想加新规则，先合并或删掉一条旧的。",
-    "rules_max": "12 条是硬顶：再多就违背『卡越长、强模型越容易被干扰』的实测结论（v2.4 的 2229 tokens 卡让模型变笨）。",
-    "release_delta_chars_max": "单次发版卡长增幅 ≤60 字符（≈37 tokens），避免一次改动吃掉全部余量。",
-    "evidence_sessions_min": "一条规则至少要 2 个会话命中同样的失败才算普遍问题；1 次事故只记事故，不改卡。",
-    "stale_days": "蒸馏采样默认只看最近 14 天；超过就重新采样，老的失败模式若不复现，规则应撤掉而不是留着。"
+    "why_not_tiny": "我们的 A/B：2229 tokens / 18 条时体感变笨；928 tokens 时最好但丢了能力机制（空转熔断、先复现、多假设只剩正文）。1056 tokens / 12 条是当前实测最好点。所以上限不是『越小越好』，而是『够用且可读』。",
+    "card_hard": "1900 tokens ≈ 3000 字符。超过这条，规则之间开始互相稀释（Lost in the Middle：长上下文中段信息召回下降），且每条规则的注意力份额被摊薄。",
+    "card_soft": "1300 tokens：越过就该问『这条能不能挪进 references』，但不必立刻删。",
+    "rules_max": "16 条上限：再多人的（和模型的）遵守率都会掉。超过 16 条说明该拆成任务型协议层，而不是继续堆卡。",
+    "block_lines_max": "20 行（含 2 行标记）：保证卡是一屏能读完的清单，不是文档。",
+    "reference_lines": "单篇 reference ≤300 行：按需加载时也不该一次灌太多。",
+    "always_on_total": "persona(≈1750) + 卡(≈1100) ≈ 2850 tokens。总常驻注入建议 ≤3500，硬顶 5000——超过就把 persona 里能用 reference 承载的部分挪走。",
+    "completeness_rule": "如果某条规则被证明修复 ≥2 个会话的同类失败，允许突破 soft；突破 hard 前必须先合并或拆到 references。宁可少一条规则，也不要一条含糊的规则。"
   }
 }

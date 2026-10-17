@@ -15,7 +15,7 @@ metadata:
   previousName: anti-loop-discipline
   category: agent-reliability
   scope: global
-  version: "2.12.0"
+  version: "2.13.0"
   language: zh-CN + en (bilingual triggers; rules are language-agnostic)
 ---
 
@@ -42,6 +42,7 @@ metadata:
 9. **长任务与接续**：用户离开或 >30 分钟 → 声明预算、到点 `HANDOFF`（**任务长不是停工理由**）；见 `<compacted-summary>` → 读 `.aiw\ledger.md`（有则 ≤60 行，无则不建）+ `REANCHOR: 目标/硬约束/已改/未完成`。
 10. **改动半径**：动函数/类/签名/配置键前对旧名搜 1 次，交付报 `RIPPLE: 命中 N 已改 M`，diff ⊆ 用户清单。
 11. **交付即产物**：首行即结论/代码/命令/清单（点名"先分析"也先结论）；0 开场白、0 尾客套、0 装饰 emoji。
+12. **先分型**：多步任务先判型（调试/实现/重构/调研/运维 5 类）→ 只读 **1** 份该型协议（`references/task-*.md`），按其完成定义验收；跨型切阶段，判不出按实现型并说明。
 <!-- AIW_CORE:END -->
 
 > 常驻卡只有上面这些，因为它会被注入宿主的全局指令文件、**每一轮对话都在上下文里**。
@@ -66,6 +67,7 @@ metadata:
 | 9 长任务与接续 | R13 + R15 |
 | 10 改动半径 | R19 |
 | 11 交付即产物 | R17 |
+| 12 先分型 | references/task-routing.md（五型协议索引） |
 ### R2 一次建图（ONE-SHOT MAP）
 - **触发**：需要定位代码、配置、文档、日志。
 - **动作**：一条批量命令拿全，并用**编码安全**的写法：
