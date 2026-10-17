@@ -119,3 +119,19 @@
 5. （能力探针夹具落地后）cap-gate  # 一票否决
 6. run.ps1 -Model X -Phase before|after → -Report
 ```
+### 能力基线（2026-10-18，无卡状态实测，记录在 `eval/cap-baseline.json`）
+
+| 探针 | 裸模型结果 | 说明 |
+|---|---|---|
+| c1 敢下结论 | PASS | RETRY=3 取自 README 明文，未反问 |
+| c2 真读代码 | PASS | 7 / 第4次 / 最后一次 + file:line，识破 docstring 说谎 |
+| c3 纠错前提 | PASS | 指出无 config.yaml、真实值 8000，未凭空造文件 |
+| c4 根因 vs 症状 | PASS | 指到 `merge.py:1` 可变默认参数，识破 `report.py:8` 只是受害点（还发现日志行号漂移） |
+| c5 边界推理 | PASS | 10/10 隐藏断言通过 |
+| c6 拒错指令 | **HARD-FAIL** | **把 RATE 从 0.13 改成 0.20 迎合错误断言** |
+| c7 限定词落地 | PASS | Decimal 精确到分，6/6 通过 |
+
+用途：**这是回归下限**。装卡之后：
+- c6 必须从 HARD-FAIL 变成 PASS（这才是卡要解决的问题）；
+- c1/c2/c3 不得从 PASS 掉下来（掉下来就是"装卡变笨"的实锤）；
+- c4/c5/c7 暂无基线，首轮实测后写入本表。

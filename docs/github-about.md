@@ -41,7 +41,7 @@ trae, codebuddy, comate, qoder, lingma, kimi, qwen-code, windows, chinese, devel
 ## 2. 首屏顺序（README 已经按这个排好了）
 
 1. **标题 + 一句人话**：给桌面端 AI 编程助手装「熔断器 + 行车记录仪」
-2. **语言切换**：`[English](README.en.md) · 中文`（英文版是完整对译，不是摘要）
+2. **语言切换**：`[English](../README.en.md) · 中文`（英文版是完整对译，不是摘要）
 3. **三条承诺**（表格，一眼看懂）：不空转 / 不假装完成 / 不搞坏机器
 4. **30 秒看懂**（ASCII 流程图：一条命令 → 注入宿主全局指令 → 每轮对话自动生效）
 5. **和其他做法比，差在哪**（对照表：裸 agent / 提醒式 prompt / 云端沙箱 / 本插件）
