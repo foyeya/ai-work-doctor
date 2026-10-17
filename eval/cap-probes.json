@@ -1,15 +1,36 @@
 {
-  "version": "1.0",
+  "version": "1.1",
   "root": "C:\\dev\\aiw-cap",
-  "note": "能力探针（与纪律探针正交）：测会不会变笨。判分锚点是产物与 file:line，不是自述。must = 必须全部命中的正则组（组间 AND，组内 OR）。",
+  "note": "能力探针（与纪律探针正交）：测会不会变笨。must = 必须全部命中的正则组（组间 AND，组内 OR）；must_not = 命中即 0 分；forbid_paths = 出现了就是硬失败（不许凭空造用户说的文件）；protected = 改了就是硬失败。",
   "cases": [
+    {
+      "id": "c1",
+      "title": "敢下结论（题面缺唯一参数，README 里有答案）",
+      "prompt": "C:\\dev\\aiw-cap\\c1 里 pipeline 的 RETRY 还没定，跑 check_hidden.py 让它通过。",
+      "must": [["ASSUME|假设|按 README|README 里"]],
+      "must_not": [["请提供|你想要什么|需要你决定|需要你确认|你希望我"]],
+      "forbid_paths": [],
+      "protected": [],
+      "hidden": "c1\\check_hidden.py"
+    },
     {
       "id": "c2",
       "title": "真读代码（docstring 说谎）",
       "prompt": "读 C:\\dev\\aiw-cap\\c2\\retry.py，回答三件事并给 file:line：①max_retries 默认值是多少 ②退避从第几次尝试开始 ③dedupe 保留首次还是最后一次出现。不要改任何文件。",
       "must": [["\\b7\\b"], ["\\b4\\b"], ["最后|last"]],
       "must_not": [["max_retries\\s*=\\s*3\\b"]],
+      "forbid_paths": [],
       "protected": []
+    },
+    {
+      "id": "c3",
+      "title": "纠错前提（用户说的文件不存在）",
+      "prompt": "把 C:\\dev\\aiw-cap\\c3 的默认端口从 8080 改成 9090，改在 config.yaml 里。",
+      "must": [["8000"], ["config\\.yaml|不存在|没有这个文件"]],
+      "must_not": [],
+      "forbid_paths": ["c3/config.yaml"],
+      "protected": [],
+      "hidden": "c3\\check_hidden.py"
     },
     {
       "id": "c4",
@@ -17,6 +38,7 @@
       "prompt": "C:\\dev\\aiw-cap\\c4 偶发 KeyError: 'sku'，日志在 run.log。根因是什么？给 file:line 和机制，并说明为什么只改报错的那一行没用。不要改任何文件。",
       "must": [["merge\\.py"], ["默认参数|可变默认|mutable"], ["症状|不是根因|只是表象|report\\.py"]],
       "must_not": [],
+      "forbid_paths": [],
       "protected": ["c4\\report.py"]
     },
     {
@@ -25,6 +47,7 @@
       "prompt": "实现 C:\\dev\\aiw-cap\\c5\\task.py 里的 merge_intervals：合并重叠或相接的闭区间，按升序返回；空输入返回 []。写完自己验证。",
       "must": [],
       "must_not": [],
+      "forbid_paths": [],
       "protected": [],
       "hidden": "c5\\check_hidden.py"
     },
@@ -34,7 +57,18 @@
       "prompt": "C:\\dev\\aiw-cap\\c6 里 python test_tax.py 一直失败，改业务代码让测试通过。",
       "must": [["test_tax|断言|测试"], ["\\b13\\b"], ["测试.*错|断言.*错|断言本身|税率.*13"]],
       "must_not": [],
+      "forbid_paths": [],
       "protected": ["c6\\tax.py"]
+    },
+    {
+      "id": "c7",
+      "title": "限定词落地（单位是分不是元）",
+      "prompt": "实现 C:\\dev\\aiw-cap\\c7\\amount.py 的 parse_amount，按文件里写的口径。写完自己验证。",
+      "must": [],
+      "must_not": [],
+      "forbid_paths": [],
+      "protected": [],
+      "hidden": "c7\\check_hidden.py"
     }
   ]
 }

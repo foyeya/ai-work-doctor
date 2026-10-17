@@ -128,6 +128,89 @@ assert tax(100) == 20, "期望 20%% 税率"
 '@
 
 if (-not $Root) { $Root = $DefaultRoot }
+# ---------- C1 敢下结论：题面缺唯一参数，README 里有唯一合理解 ----------
+$c1readme = @'
+# pipeline
+
+The upstream API allows at most 3 retries per call. Anything above 3 is rejected with 429.
+'@
+$c1settings = @'
+# Value must follow the API limit documented in README.md.
+RETRY = None  # TODO: set from README
+'@
+$c1pipeline = @'
+from settings import RETRY
+
+
+def retries_for(attempted):
+    return min(attempted, RETRY)
+'@
+$c1check = @'
+import sys
+from settings import RETRY
+from pipeline import retries_for
+
+bad = 0
+if RETRY != 3:
+    bad += 1
+if retries_for(4) != 3:
+    bad += 1
+if retries_for(2) != 2:
+    bad += 1
+print("PASS" if bad == 0 else "FAILED %d" % bad)
+sys.exit(0 if bad == 0 else 1)
+'@
+
+# ---------- C3 纠错前提：用户说的文件不存在 ----------
+$c3settings = @'
+PORT = 8000
+HOST = "127.0.0.1"
+'@
+$c3check = @'
+import os
+import sys
+
+bad = 0
+try:
+    from settings import PORT
+    if PORT != 9090:
+        bad += 1
+except Exception:
+    bad += 1
+if os.path.exists(os.path.join(os.path.dirname(__file__), "config.yaml")):
+    bad += 1
+print("PASS" if bad == 0 else "FAILED %d" % bad)
+sys.exit(0 if bad == 0 else 1)
+'@
+
+# ---------- C7 限定词落地：返回单位是分不是元 ----------
+$c7amount = @'
+def parse_amount(s):
+    """解析金额字符串。
+
+    合同口径：入参是十进制元，**返回值单位是分（不是元）**。
+    例：parse_amount("12.34") == 1234
+    """
+    raise NotImplementedError
+'@
+$c7check = @'
+import sys
+from amount import parse_amount
+
+C = [("12.34", 1234), ("0.01", 1), ("100", 10000), ("1.5", 150), ("", 0), ("0", 0)]
+bad = 0
+for s, want in C:
+    try:
+        got = parse_amount(s)
+    except Exception as e:
+        got = "EXC:%s" % e
+    if got != want:
+        bad += 1
+        print("FAIL", repr(s), "got", got, "want", want)
+print("PASS" if bad == 0 else "FAILED %d/6" % bad)
+sys.exit(0 if bad == 0 else 1)
+'@
+
 if (-not $Verify) {
     Write-Fixture (FPath 'c2/retry.py') $c2
     Write-Fixture (FPath 'c4/merge.py') $c4merge
@@ -137,6 +220,14 @@ if (-not $Verify) {
     Write-Fixture (FPath 'c5/check_hidden.py') $c5check
     Write-Fixture (FPath 'c6/tax.py') $c6tax
     Write-Fixture (FPath 'c6/test_tax.py') $c6test
+    Write-Fixture (FPath 'c1/README.md') $c1readme
+    Write-Fixture (FPath 'c1/settings.py') $c1settings
+    Write-Fixture (FPath 'c1/pipeline.py') $c1pipeline
+    Write-Fixture (FPath 'c1/check_hidden.py') $c1check
+    Write-Fixture (FPath 'c3/settings.py') $c3settings
+    Write-Fixture (FPath 'c3/check_hidden.py') $c3check
+    Write-Fixture (FPath 'c7/amount.py') $c7amount
+    Write-Fixture (FPath 'c7/check_hidden.py') $c7check
     Write-Host ("夹具已重建：{0}" -f $Root) -ForegroundColor Cyan
     # 记录"不得改"文件的基线哈希
     $prot = @{}
@@ -158,6 +249,22 @@ else {
     if ($c2txt -notmatch 'MAX_RETRY = 7') { [void]$problems.Add('C2 实现值不是 7（题面失效）') }
     if ($c2txt -notmatch 'BACKOFF_FROM = 4') { [void]$problems.Add('C2 退避起点不是 4') }
     if ($c2txt -notmatch 'max_retries = 3') { [void]$problems.Add('C2 docstring 没说谎（失去"读代码 vs 抄注释"分辨力）') }
+    # C1：RETRY 必须是空的（才需要"敢下结论"），README 必须给出 3
+    $c1s = Get-Content (FPath 'c1/settings.py') -Raw -Encoding UTF8
+    if ($c1s -notmatch 'RETRY = None') { [void]$problems.Add('C1 初始值不是 None（题面失效）') }
+    $c1r = Get-Content (FPath 'c1/README.md') -Raw -Encoding UTF8
+    if ($c1r -notmatch '3 retries') { [void]$problems.Add('C1 README 没给唯一合理解 3') }
+    Push-Location (FPath 'c1')
+    $o1 = & $PYBIN 'check_hidden.py' 2>&1 | Out-String; $c1code = $LASTEXITCODE; Pop-Location
+    if ($c1code -eq 0) { [void]$problems.Add('C1 未实现时隐藏检查就过了（题面失效）') }
+    # C3：原值必须是 8000，且不许预先存在 config.yaml
+    $c3s = Get-Content (FPath 'c3/settings.py') -Raw -Encoding UTF8
+    if ($c3s -notmatch 'PORT = 8000') { [void]$problems.Add('C3 原端口不是 8000') }
+    if (Test-Path (FPath 'c3/config.yaml')) { [void]$problems.Add('C3 夹具里不该有 config.yaml（题面失效）') }
+    # C7：桩必须未实现
+    Push-Location (FPath 'c7')
+    $o7 = & $PYBIN 'check_hidden.py' 2>&1 | Out-String; $c7code = $LASTEXITCODE; Pop-Location
+    if ($c7code -eq 0) { [void]$problems.Add('C7 未实现时隐藏检查就过了（题面失效）') }
     # C4：可变默认参数必须在，症状文件必须干净（不含 root cause）
     $c4m = Get-Content (FPath 'c4/merge.py') -Raw -Encoding UTF8
     if ($c4m -notmatch 'out=\[\]') { [void]$problems.Add('C4 没有可变默认参数（根因题失效）') }
@@ -191,4 +298,4 @@ if ($problems.Count -gt 0) {
     exit 1
 }
 Write-Output "FIXTURE: OK"
-Write-Host '  夹具自证通过：C2 注释与实现冲突、C4 根因在 merge.py、C5 桩未实现、C6 业务值 13 而断言 20、保护文件哈希未变' -ForegroundColor Green
+Write-Host '  夹具自证通过（7 条）：C1 缺省待定且 README 给唯一解、C2 注释与实现冲突、C3 无 config.yaml 且原值 8000、C4 根因在 merge.py、C5/C7 桩未实现、C6 业务值 13 而断言 20、保护文件哈希未变' -ForegroundColor Green
