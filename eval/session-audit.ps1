@@ -6,7 +6,7 @@
 # 卡的规则没有可观测回执，等于没生效。这个脚本把这类浪费做成机械判分：
 #   HF1 单次工具调用 ≥120 秒（长阻塞）
 #   HF2 job_output wait=true ≥2 次（干等同一件事）
-#   HF3 连续 ≥8 个工具调用期间 0 对外文字（静默空转）
+#   HF3 连续 ≥5 个工具调用期间 0 对外文字（静默空转，与卡第 11 条同口径）
 #
 # 用法：
 #   powershell -File .\eval\session-audit.ps1 -Path <会话.v4.jsonl.zstd 或 .jsonl>
@@ -22,7 +22,7 @@ $ErrorActionPreference = 'Stop'
 
 $HF1_SEC = 120      # 单次调用硬上限（秒）
 $HF2_COUNT = 2      # wait=true 允许次数（超过即硬失败）
-$HF3_SILENT = 8     # 连续无对外文字的工具调用数上限
+$HF3_SILENT = 5     # 连续无对外文字的工具调用数上限
 
 function Expand-SessionFile {
     param([string]$File)
