@@ -185,3 +185,9 @@ jobs:
           $o = & ./eval/distill.ps1 -SelfTest 6>&1 | Out-String
           if ($o -notmatch 'SELFTEST: PASS') { throw 'distill self-test failed' }
           'distill ok'
+      - name: 装后验证器自测（verify）
+        shell: pwsh
+        run: |
+          $o = & ./eval/verify.ps1 -SelfTest 6>&1 | Out-String
+          if ($o -notmatch 'SELFTEST: PASS') { throw 'verify self-test failed' }
+          'verify ok'

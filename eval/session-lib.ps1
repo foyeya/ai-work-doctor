@@ -3,7 +3,8 @@
 
 $HF1_SEC = 120      # 单次调用硬上限（秒）
 $HF2_COUNT = 2      # wait=true 允许次数（超过即硬失败）
-$HF3_SILENT = 5     # 连续无对外文字的工具调用数上限（与卡第 11 条同口径）
+$HF3_SILENT = 5     # 连续无对外文字的调用数上限（与卡第 0 条同口径）
+$HF3_SEC = 60       # 且静默时长 ≥60 秒才算"墨迹"（30 秒内跑 7 步不算）
 
 function Expand-SessionFile {
     param([string]$File)
@@ -90,6 +91,14 @@ function Test-SessionEvents {
         if ($o -eq 'text') { $run = 0 } else { $run++; if ($run -gt $maxSilent) { $maxSilent = $run } }
     }
 
+    # 静默段时长：连续无文字的那一段，从首条调用到最后一条调用
+    $callTimes = @($calls | ForEach-Object { $_.Time })
+    $silentSec = 0
+    if ($maxSilent -ge 1) {
+        $maxSilent = [math]::Min($maxSilent, $callTimes.Count)
+        $first = $callTimes[0]; $last = $callTimes[[math]::Max(0, $callTimes.Count - 1)]
+        $silentSec = [math]::Round(($last - $first) / 1000.0, 0)
+    }
     $errs = @($results | Where-Object { $_.IsError -or $_.Text -match '(?i)(exception|not recognized|cannot find|denied|没有找到|拒绝访问|失败)' })
     $waste = 0
     foreach ($c in $hf1) { $waste += ($c.Dur - $HF1_SEC) }
@@ -97,13 +106,14 @@ function Test-SessionEvents {
     $hard = New-Object System.Collections.ArrayList
     if ($hf1.Count -gt 0) { [void]$hard.Add(("HF1 长阻塞：{0} 次调用 ≥{1} 秒（最慢 {2:N0}s：{3}）" -f $hf1.Count, $HF1_SEC, ($hf1 | Measure-Object Dur -Maximum).Maximum, $hf1[0].Name)) }
     if ($waits.Count -ge $HF2_COUNT) { [void]$hard.Add(("HF2 干等：job wait=true {0} 次（上限 {1} 次）" -f $waits.Count, ($HF2_COUNT - 1))) }
-    if ($maxSilent -ge $HF3_SILENT) { [void]$hard.Add(("HF3 静默空转：连续 {0} 个工具调用没有对外文字（上限 {1}）" -f $maxSilent, ($HF3_SILENT - 1))) }
+    if (($maxSilent -ge $HF3_SILENT) -and ($silentSec -ge $HF3_SEC)) { [void]$hard.Add(("HF3 静默空转：连续 {0} 个工具调用、静默 {1} 秒没有对外文字（上限 {2} 步 / {3} 秒）" -f $maxSilent, $silentSec, ($HF3_SILENT - 1), $HF3_SEC)) }
 
     return [pscustomobject]@{
         Calls     = $calls.Count
         Errors    = $errs.Count
         Waits     = $waits.Count
         MaxSilent = $maxSilent
+        SilentSec = $silentSec
         Slowest   = ($calls | Sort-Object Dur -Descending | Select-Object -First 3)
         TotalSec  = if ($sorted.Count -gt 1) { ($sorted[-1].time - $sorted[0].time) / 1000.0 } else { 0 }
         WasteSec  = $waste
