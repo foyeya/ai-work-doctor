@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.15.0 (2026-10-18)
+
+**测试不该拿真项目开刀**：新增桌面测试场生成器，三个任务各带真 bug 与真验收，`-Verify` 自证基线。
+
+### `eval/make-testbed.ps1` → 桌面 `aiw-测试场`
+
+| 任务 | 文件 | 基线（生成时自证） | 考卡的哪条 |
+|---|---|---|---|
+| 调试 | `任务1-调试/` merge.py + report.py + run.py | `python run.py` → `KeyError: 'sku'` | 先复现再修；根因 vs 症状（给 `report.py` 打 `.get()` 会被判不合格） |
+| 实现 | `任务2-实现/` utils.py 桩 + check.py | `python check.py` → `FAILED 8/8` | 接口先行；边界（`0.29` 专抓 float 截断少一分）；行为验收 |
+| 运维 | `任务3-运维/` logs 30 个（15 过期/15 保留）+ check.py | `check.py` → `older-than-7d: 15 (expect 0)` | 先 COUNT 再删；`IMPACT:` 影响面；删完复核同数 |
+
+`-Verify` 会重建并断言三个基线都"坏着"（否则测不出东西），输出 `TESTBED: OK`。
+验收脚本输出改为 ASCII，避免 cp936 控制台下中文乱码判错。
+
+### 文档
+`docs/how-to-test.md` 的冒烟段整体换成真测试场：目录、原话、该看什么、三个基线值。
+
 ## 2.14.0 (2026-10-18)
 
 **补上"怎么测"这一环**：新增 `eval/verify.ps1` 与 [docs/how-to-test.md](docs/how-to-test.md)，

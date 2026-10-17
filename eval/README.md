@@ -158,3 +158,5 @@ powershell -ExecutionPolicy Bypass -File .\eval\run.ps1 -Report
 关键约束：提案必须区分「已装新卡仍命中」和「旧卡历史数据」——前者才是规则不够，后者只是考古。
 
 > 加规则前必读：[成本闸门与防污染](../docs/policy-tradeoff.md)——成功率优先，但卡长/条数有硬顶，且蒸馏不得跨任务串味。
+
+> 冒烟测试别拿真项目开刀：`.\eval\make-testbed.ps1` 会在桌面生成 `aiw-测试场`（调试/实现/运维三个可真跑的任务，`-Verify` 自证基线都坏着）。
