@@ -9,3 +9,5 @@ SHA256SUMS.txt
 .idea/
 eval/results/*.csv
 eval/results/*.json
+# 蒸馏提案是本地证据，不入库
+eval/proposals/

@@ -178,3 +178,9 @@ jobs:
           $o = & ./eval/session-audit.ps1 -SelfTest 6>&1 | Out-String
           if ($o -notmatch 'SELFTEST: PASS') { throw 'session-audit self-test failed' }
           'session audit ok'
+      - name: 蒸馏回路自测（distill）
+        shell: pwsh
+        run: |
+          $o = & ./eval/distill.ps1 -SelfTest 6>&1 | Out-String
+          if ($o -notmatch 'SELFTEST: PASS') { throw 'distill self-test failed' }
+          'distill ok'
