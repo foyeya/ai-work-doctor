@@ -386,7 +386,7 @@ if ($isProjectMode) {
         if ($h.InstrFile) {
             $skillDir = $null
             if ($h.SkillsRel) { $skillDir = Join-Path $hostPath $h.SkillsRel }
-            $note = "> 本块由 ai工作医生安装脚本写入（技能目录：$skillDir）。卸载：install.ps1 -Uninstall"
+            $note = "> 本块由 ai工作医生安装脚本写入（技能目录：$skillDir\$SkillId）。卸载：install.ps1 -Uninstall"
             Invoke-Inject -Name $h.Name -Path (Join-Path $hostPath $h.InstrFile) -NoteLine $note
         }
         if ($h.SkillsRel) { Invoke-CopySkill -Name $h.Name -SkillDir (Join-Path $hostPath $h.SkillsRel) }
@@ -430,6 +430,11 @@ if ($List) {
     Write-Host "以上是预览，没有写入任何文件。要真激活：去掉 -DryRun。" -ForegroundColor Cyan
 } else {
     Write-Host "激活完成。" -ForegroundColor Cyan
+Write-Host ''
+Write-Host "【生效方式】没重启 = 没生效，别拿它测：" -ForegroundColor Yellow
+Write-Host "  · DSH / CC GUI ：当前对话不生效，新开一个对话即加载（用户级 AGENTS.md 在会话启动时读）" -ForegroundColor DarkGray
+Write-Host "  · Codex 桌面版 ：需重启应用（托盘退出后重开），只新开会话可能仍读旧指令" -ForegroundColor DarkGray
+Write-Host "  · 其它 CLI     ：新进程即生效" -ForegroundColor DarkGray
     Write-Host "验证生效：新开一个对话，让 agent 复述预算上限（read 2 / search 2 / deploy 2 / no-op 2 / tool-err 3）。" -ForegroundColor Cyan
     Write-Host "UI 里配规则的宿主（Cursor / Trae / 灵码 / Comate / CodeBuddy…）：把 README「手动兜底」那段粘进它的用户规则设置。" -ForegroundColor DarkGray
     Write-Host "卸载：install.ps1 -Uninstall（项目级用 -Project <目录> -Uninstall）" -ForegroundColor DarkGray

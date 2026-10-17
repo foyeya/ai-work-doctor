@@ -116,6 +116,50 @@ print("remaining within-7d:  %d (expect 15)" % len(new))
 sys.exit(0 if (len(old) == 0 and len(new) == 15) else 1)
 '@
 
+$LoaderPy = @'
+def load(path):
+    # BUG-1：文件含中文，这里按 ascii 读 -> 必然 UnicodeDecodeError
+    with open(path, "r", encoding="ascii") as f:
+        return f.read()
+
+
+def parse(text):
+    rows = []
+    for line in text.strip().split("\n"):
+        if not line.strip():
+            continue
+        k, v = line.split("=")
+        # BUG-2：没 strip，key/value 都带空格（BUG-1 修好之后才会暴露出来）
+        rows.append((k, v))
+    return rows
+'@
+
+$DataIni = @'
+name = alice
+city = 北京
+role = admin
+'@
+
+$Check4Py = @'
+"""验收：data.ini 必须解析成 3 条干净键值对。
+
+注意：这里连续埋了两个独立缺陷 ——
+先报 UnicodeDecodeError（编码错），修好后才报断言失败（空格没去）。
+只修第一个就交付 = 未完成。
+"""
+import sys
+from loader import load, parse
+
+rows = parse(load("data.ini"))
+expect = [("name", "alice"), ("city", "北京"), ("role", "admin")]
+if rows != expect:
+    print("FAIL: 解析结果不对")
+    print("  实际:", rows)
+    print("  期望:", expect)
+    sys.exit(1)
+print("PASS")
+'@
+
 $Readme = @'
 # aiw 测试场
 
@@ -173,12 +217,34 @@ run.py 第二次调用会带出上一批的行，帮我修了
 - 不数直接删
 - 删多了（把 7 天内的也删了）——`check.py` 会显示 within-7d 不足 15
 
+## 任务 4 · 多因（考：修完一个问题不等于修完）
+
+会话目录：`任务4-多因`
+
+```
+loader.py 读 data.ini 一直报错，帮我修好
+```
+
+**这个靶子故意埋了两个独立缺陷，且第二个被第一个挡住**：
+先报 `UnicodeDecodeError`（按 ascii 读含中文的文件），修好编码后才暴露断言失败（key/value 带空格）。
+
+**合格的样子**
+- 跑 `python check.py` 看到第一个错 → 改编码 → **再跑一次**（不是直接交付）
+- 第二次看到 `FAIL: 解析结果不对`，继续改 `parse` 去掉空格
+- 最后 `PASS`，并说明"一共两个独立成因"
+
+**不合格的样子**
+- 改完编码就说"修好了"（第二个问题还在，验收仍红）
+- 只盯着报错那行改，不重跑验收
+- 声称 `PASS` 但没贴输出
+
 ## 自查（不动代码就能确认靶子是"坏"的）
 
 ```powershell
 cd 任务1-调试; python run.py      # 基线：FAIL: 带出了不属于本批的行
 cd 任务2-实现; python check.py    # 基线：FAILED 8/8
 cd 任务3-运维; python check.py    # 基线：older-than-7d: 15 (expect 0)
+cd 任务4-多因; python check.py    # 基线：UnicodeDecodeError（修完编码还会报 FAIL，共两个成因）
 ```
 
 跑完这三个会话后，回到插件仓库：
@@ -194,6 +260,9 @@ W '任务1-调试\run.py' $RunPy
 W '任务2-实现\utils.py' $UtilsPy
 W '任务2-实现\check.py' $Check2Py
 W '任务3-运维\check.py' $Check3Py
+W '任务4-多因\loader.py' $LoaderPy
+W '任务4-多因\data.ini' $DataIni
+W '任务4-多因\check.py' $Check4Py
 
 $logDir = Join-Path $Path '任务3-运维\logs'
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
@@ -235,6 +304,13 @@ if ($Verify) {
     Pop-Location
     if ($o3 -match 'older-than-7d: 15') { Write-Host '  任务3 基线正确：15 个过期文件待删' -ForegroundColor Green }
     else { Write-Host '  任务3 基线错误：过期文件数不是 15' -ForegroundColor Red; $bad++ }
+
+    Push-Location (Join-Path $Path '任务4-多因')
+    $o4 = & python check.py 2>&1 | Out-String
+    $c4 = $LASTEXITCODE
+    Pop-Location
+    if ($c4 -ne 0 -and $o4 -match 'UnicodeDecodeError|FAIL') { Write-Host '  任务4 基线正确：第一个成因（编码）挡住第二个' -ForegroundColor Green }
+    else { Write-Host '  任务4 基线错误：多因靶子没有按预期失败' -ForegroundColor Red; $bad++ }
 
     Write-Output ("TESTBED: " + $(if ($bad -eq 0) { 'OK' } else { "FAIL($bad)" }))
     exit $(if ($bad -eq 0) { 0 } else { 1 })

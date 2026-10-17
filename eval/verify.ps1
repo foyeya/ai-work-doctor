@@ -52,6 +52,7 @@ function Test-SessionEvidence {
             }
         }
     }
+    if ($allText -match '型[:：]\s*(调试|实现|重构|调研|运维)') { $proto++ }
     $hit = @()
     foreach ($n in $ReceiptNames) { if ($allText -match [regex]::Escape($n)) { $hit += $n } }
 
