@@ -194,6 +194,15 @@ rm -rf ~/.agents/skills/anti-loop-discipline ~/.codex/skills/anti-loop-disciplin
 
 ## 7. 验证生效
 
+**先记住：没重启 = 没生效。** 各宿主的生效方式不同：
+
+| 宿主 | 生效方式 |
+|---|---|
+| **DSH / CC GUI** | 当前对话不生效，**新开一个对话**即加载（用户级 AGENTS.md 在会话启动时读） |
+| **Codex 桌面版** | **重启应用**（托盘退出再开）；只新开会话可能仍读旧指令 |
+| 其它 CLI | 新进程即生效 |
+| Trae / CodeBuddy / 灵码等 IDE | 新建对话；部分需重启或重载项目才会重新扫描规则目录 |
+
 - 全局：新开对话问 **"说出 ai工作医生 的预算上限"** → `read 2 / search 2 / deploy 2 / no-op 2 / tool-err 3`。
 - 项目级：在项目里让 agent 做一个小任务，看它是否**一条**批量搜索、并在回复里列出改动文件；
   故意让它撞一个不存在的命令（如 `rg`），看它是否一次探测后改用 `Select-String` 而不是反复重试。
@@ -220,7 +229,7 @@ rm -rf ~/.agents/skills/anti-loop-discipline ~/.codex/skills/anti-loop-disciplin
 .\eval\card-audit.ps1
 .\eval\card-audit.ps1 -SelfTest    # 判定器自证：坏样本必抓、好样本不误伤
 
-# ③ 40 分钟（可选）：14 条行为探针，装前/装后成对对比
+# ③ 40 分钟（可选）：16 条纪律探针，装前/装后成对对比（能力探针见 eval\cap-gate.ps1）
 .\eval\run.ps1 -List
 .\eval\run.ps1 -Model "你的模型" -Phase before      # 先卸载或换干净宿主
 .\eval\run.ps1 -Model "你的模型" -Phase after       # 装上后重开宿主

@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.17.1 (2026-10-18)
+
+**开源仓库的门面全部对齐到 v2.17**（此前还停在 v2.7 的 10 条 / 942 tokens）。
+
+### 改了什么
+
+| 位置 | 之前 | 现在 |
+|---|---|---|
+| `README.md` 三层结构表 | 常驻卡「10 条编号规则 / 1507 字符 ≈ 942 tokens」 | **第 0 条 + 12 条 / 1857 字符 ≈ 1161 tokens（硬顶 1900）**，并补 `references/task-*.md` 一行 |
+| `README.md` | 无器械说明 | 新增「器械：能自己量自己」小节（card-audit / scan / session-audit / verify / distill / make-testbed 六条命令） |
+| `README.md` 常见问题 | 只说"重启宿主" | 按宿主分列：DSH 新开对话 / Codex 重启应用 / 其它新进程 |
+| `README.md` 装前装后 | 还写 `LOOP`、`STALL at N` 两个已废弃回执 | 改成现行口径（换维度并说一句换到哪去 / 连续 5 步给进展） |
+| `README.en.md` | input gate + 10 numbered rules (v2.7.0, 942 tokens) | input gate + **12** rules (v2.17.0, 1161 tokens)，新增 Tooling 表 |
+| `docs/why-ai-work-doctor.md` | 三份互相矛盾的 R0–R14 旧列表 | 只留现行清单，补第 12 条「先分型」与多因实测 |
+| `INSTALL.md` §7 | 只说"重启" | 新增宿主生效方式表（没重启 = 没生效） |
+| `docs/github-about.md` 一句话 | 「14 条行为探针 + 两个机械评审器」 | 「16 条纪律探针 + 7 条能力探针 + 6 个机械评审器 + 5 型任务协议」 |
+| **GitHub 仓库 About** | 同上旧数字 | 重写为现行能力摘要（含任务型协议与四件器械） |
+
+### 为什么现在才对齐
+前 10 个版本都在改规则和器械，文档只跟进 CHANGELOG——门面（README/About）一直没跟。这次统一扫了一遍，用脚本核对了 `1507 字符 / 942 tokens / 10 条编号 / R1–R17 / 14 条行为探针 / 两个机械评审器 / LOOP / STALL` 八个过时关键词，除 CHANGELOG 历史记录外全部 0 命中（`references/iq-reasoning.md` 与英文 README 里的旧回执也改成了现行措辞）。
+
 ## 2.17.0 (2026-10-18)
 
 **第五轮真机测试的结论：让模型"去读文件"没用，让它"打一行回执"才有用。**

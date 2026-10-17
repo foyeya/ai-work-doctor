@@ -9,13 +9,14 @@ description: >-
   Gemini CLI, Qwen Code, and Chinese agents (Trae / 通义灵码 / 文心快码 Comate / CodeBuddy /
   CodeGeeX / Qoder / iFlow). Auto-trigger at the START of any multi-step task, before every
   verify/debug step, when a tool call is about to repeat, or when two consecutive turns
+  produced no artifact. Ships 5 task-type protocols (debug / implement / refactor / research / ops),
   produced no artifact.
 metadata:
   displayName: ai工作医生
   previousName: anti-loop-discipline
   category: agent-reliability
   scope: global
-  version: "2.17.0"
+  version: "2.17.1"
   language: zh-CN + en (bilingual triggers; rules are language-agnostic)
 ---
 
@@ -64,7 +65,7 @@ metadata:
 
 ## 完整规则（R0–R19）
 
-> **常驻卡是压缩版，正文是完整版。** v2.6.0 起卡里按 0–11 编号，与正文 R 编号是"一对多"关系，
+> **常驻卡是压缩版，正文是完整版。** v2.17.0 起卡里按第 0 条 + 1–12 编号，与正文 R 编号是"一对多"关系，
 > 逐条映射如下（改卡时先看这张表，别改一半）：
 
 | 卡内 | 正文对应 |
@@ -126,7 +127,7 @@ metadata:
 - **触发**：连续 2 个工具调用没有新信息（新信息 = 文件变了 / 命令给出新结论 / 假设被证实或证伪 / 拿到用户决策）。
 - **动作**：打印 `LOOP at N: <动作> x2, 无新信息` → 换一个维度 → 第 3 次仍无产出 → `BLOCKED: 需要 X`（具体到需要谁做什么）或走 R13 交接。
 - **纯推理空转（同样要熔断）**：连续 2 轮**只有推理、没有工具调用、也没有新事实**（同一结论换措辞重说、把已知信息重新组织一遍）
-  → 打印 `STALL at N: <结论> 论证 x2, 无新证据`，随后只能三选一：**动手探一次**（最便宜的探测）/
+  → 说一句 `换到哪去: <新手段>`，随后只能三选一：**动手探一次**（最便宜的探测）/
   **切最小可验证切片** / **上报 `BLOCKED:`**。理由：R4/R6 原来的计量单位是"工具调用"，纯推理轮次永远涨不到阈值，
   于是"想很久但什么都不做"从规则缝里漏过去（`references/iq-reasoning.md` 有实验证据）。
 - **同类熔断（桌面端专属）**：同一路径连续 2 次 `EPERM` / `EBUSY` / `ENAMETOOLONG` / "写完文件却回到原样"

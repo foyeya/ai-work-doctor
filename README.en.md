@@ -146,14 +146,14 @@ Chinese models / international models / measurable evals) and it landed as **3 n
 | After context compaction the port, path and prohibitions are gone — and it re-walks the same dead end | **R15 re-anchor after compaction** | `REANCHOR: goal / hard constraints / changed / open items / failures`. The trigger **must** live in the always-on card: compaction replaces history, but **the card itself is never compacted** |
 | You list 5 things, it does 3 and stays quiet; stub code passes as done; "tests pass" without running them | **R16 delivery reconciliation** | `DONE m/N`, `NOSTUB: path:line`, `UNVERIFIED: entrypoint` |
 | "Sure, I'd be happy to help…", "Hope this helps", drifting into English in a Chinese task, unrelated refactors | **R17 ship the artifact + language lock** | Artifact on line 1; decorative emoji 0; self-authored English sentences 0; net added lines ≤0 for refactors |
-| Long silent reasoning that never crosses the circuit-breaker (the counter only watched tool calls) | **R4 upgrade (costs 0 lines)** | `STALL at N: <conclusion> argued x2, no new evidence` |
+| Long silent reasoning that never crosses the circuit-breaker (the counter only watched tool calls) | **rule 2 (costs 0 lines)** | `换到哪去: <new approach>` (the old `LOOP`/`STALL` fixed strings were retired) |
 | A 12-line plan for a one-line change / a big change with no plan / wrong direction discovered after the work | **R8 think-first with expectations** | `EXPECT: <action> → <observable result>`, `WHY: <assumption> wrong → switch to <new one>` |
 
 The detail doesn't sit in the card: reasoning tiers with paper-level evidence, stub-scanning commands, the task-ledger
 protocol, mechanically checkable taste rules, and **behaviour tables for 12 Chinese models plus the international ones**
 (each row graded by evidence level) live in `references/iq-*.md`, read only when the situation calls for it.
 
-**Why "effective" and not "smarter"?** `eval/` ships 14 behaviour probes (6 of them hard-fail) for a before/after paired
+**Why "effective" and not "smarter"?** `eval/` ships **16 discipline probes** (7 hard-fail) + **7 capability probes** for a before/after paired
 comparison: **+5 points and fewer hard failures** is the bar; the absolute band is informational only.
 **Measured on this machine (2026-10-15, n=1, "after" only)**: 5 probes passed, 1 failed —
 `P01 input gate 2/2` (a bare "在": zero tool calls, zero file writes, it just asked for the target),
@@ -177,7 +177,7 @@ floor, and corrects model-specific habits. The probes measure **behavioural disc
 
 | Layer | Contents | When it enters context |
 |---|---|---|
-| **Always-on card** (injected by the installer) | input gate + 10 numbered rules (v2.7.0: 1507 chars ≈ 942 tokens/turn (58% below v2.4.x, with 5 capability mechanisms restored)) | Every request — which is why it must stay short |
+| **Always-on card** (injected by the installer) | input gate + **12** numbered rules (v2.17.0: 1857 chars ≈ **1161 tokens**/turn; hard cap 1900 tokens, CI fails above it) |
 | **SKILL.md body** | Trigger / action / cap / counter-example per rule, vague-request mapping, boundaries, self-check | Loaded on demand |
 | **`references/iq-*.md`** | reasoning control, anti-laziness, ledger protocol, checkable taste, Chinese & international model tables (6 files, ~200KB) | Only on the matching situation — zero cost by default |
 | **references/desktop-cn.md** | Command-level pitfalls (encoding, paths, ports, mirrors, hanging commands…) | Only when the symptom appears |
@@ -185,7 +185,19 @@ floor, and corrects model-specific habits. The probes measure **behavioural disc
 The installer extracts the card from `SKILL.md` between `AIW_CORE` markers (single source of truth), writes it
 idempotently, previews with `-DryRun` and removes it precisely with `-Uninstall`.
 
-## The 12 rules (v2.7.0)
+## Tooling: it measures itself
+
+| Tool | What it does | One command |
+|---|---|---|
+| `eval/card-audit.ps1` | card structure + 19 semantic clauses + budget gate | `.\eval\card-audit.ps1` |
+| `eval/scan.ps1` | score any transcript: 6 hard failures + receipts + slop | `.\eval\scan.ps1 -Path chat.txt` |
+| `eval/session-audit.ps1` | single-session health: long blocks / idle waits / silent spinning | `.\eval\session-audit.ps1 -Path <session>` |
+| `eval/verify.ps1` | post-install check: not silent / no long blocks / receipts / routing | `.\eval\verify.ps1 -Days 3` |
+| `eval/distill.ps1` | turn real sessions into card-change proposals (never auto-merged) | `.\eval\distill.ps1 -Days 7` |
+| `eval/make-testbed.ps1` | generate 4 runnable fixtures on the Desktop (`-Verify` self-checks) | `.\eval\make-testbed.ps1 -Verify` |
+
+Full test recipe: [docs/how-to-test.md](docs/how-to-test.md). Size & contamination policy: [docs/policy-tradeoff.md](docs/policy-tradeoff.md).
+## The 12 rules (v2.17.0)
 
 | # | Rule | Accident it prevents |
 |---|---|---|
@@ -209,7 +221,7 @@ idempotently, previews with `-DryRun` and removes it precisely with `-Uninstall`
 | R17 | Ship the artifact + language lock | "Sure, happy to help…", "Hope this helps", English drift in Chinese tasks, unrelated refactors |
 
 (Also upgraded in place: **R4** now also trips on *pure reasoning* stalls — two turns of re-arguing the same conclusion
-with no tool call and no new fact prints `STALL at N:`.)
+with no tool call and no new fact must say `换到哪去: <new approach>`.)
 
 ## Coverage
 
@@ -271,9 +283,9 @@ ai-work-doctor/
 ├── SKILL.md                  # the skill (the always-on card sits between AIW_CORE markers)
 ├── references/desktop-cn.md  # Chinese-Windows pitfall table (read on demand)
 ├── references/iq-*.md        # reasoning / anti-lazy / ledger / checkable taste / CN + intl model behaviour
-├── eval/                     # 14 behaviour probes + scorer (paired before/after comparison)
+├── eval/                     # 16 discipline probes + 7 capability probes + 6 evaluators
 ├── references/iq-*.md        # reasoning / anti-lazy / ledger / taste / CN & intl model behaviour (read on demand)
-├── eval/                     # 14 behaviour probes + scorer (before/after paired comparison)
+├── eval/                     # 16 discipline probes + 7 capability probes + 6 evaluators
 ├── install.ps1               # Windows: -List / -Select / -Only / -DryRun / -Uninstall / -Project
 ├── install.sh                # macOS / Linux / Git Bash: -l / -i / --only / -n / -u / -p
 ├── activate.cmd              # Windows double-click → host menu
