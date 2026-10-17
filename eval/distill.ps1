@@ -146,7 +146,7 @@ function New-Proposal {
 
 if ($SelfTest) {
     Write-Host '=== 自测：脏会话必须产出建议，干净会话必须"不要为了改而改" ===' -ForegroundColor Cyan
-    $tmp = Join-Path $env:TEMP ('aiw_distill_' + [guid]::NewGuid().ToString('N').Substring(0, 6))
+    $tmp = Join-Path ([IO.Path]::GetTempPath()) ('aiw_distill_' + [guid]::NewGuid().ToString('N').Substring(0, 6))
     New-Item -ItemType Directory -Force -Path $tmp | Out-Null
     $t0 = 1792260709000
 

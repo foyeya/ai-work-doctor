@@ -8,10 +8,10 @@ $HF3_SILENT = 5     # 连续无对外文字的工具调用数上限（与卡第 
 function Expand-SessionFile {
     param([string]$File)
     if ($File -notlike '*.zstd') { return ([IO.File]::ReadAllText($File, [Text.Encoding]::UTF8)) }
-    $py = Join-Path $env:TEMP 'aiw_unzstd.py'
+    $py = Join-Path ([IO.Path]::GetTempPath()) 'aiw_unzstd.py'
     $code = "import sys`ntry:`n    from compression import zstd`n    d = zstd.decompress(open(sys.argv[1],'rb').read())`nexcept Exception:`n    import zstandard as z`n    d = z.decompress(open(sys.argv[1],'rb').read())`nopen(sys.argv[2],'wb').write(d)`n"
     [IO.File]::WriteAllText($py, $code, (New-Object Text.UTF8Encoding($false)))
-    $out = Join-Path $env:TEMP ('aiw_sess_' + [guid]::NewGuid().ToString('N').Substring(0, 8) + '.jsonl')
+    $out = Join-Path ([IO.Path]::GetTempPath()) ('aiw_sess_' + [guid]::NewGuid().ToString('N').Substring(0, 8) + '.jsonl')
     & python $py $File $out | Out-Null
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $out)) {
         throw '解压失败：需要 python 3.14+ 的 compression.zstd，或 pip install zstandard'
